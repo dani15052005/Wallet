@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Simulador de gastos</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script defer src="script.js"></script>
+  <script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js')
+    .then(reg => {
+      console.log('Service Worker registrado', reg);
+
+      reg.addEventListener('updatefound', () => {
+        const newSW = reg.installing;
+        newSW.addEventListener('statechange', () => {
+          if (newSW.state === 'installed') {
+            if (navigator.serviceWorker.controller) {
+              console.log('Nueva versión disponible — recarga para actualizar.');
+            } else {
+              console.log('Contenido cacheado para uso offline.');
+            }
+          }
+        });
+      });
+    })
+    .catch(err => console.error('Error registrando SW:', err));
+}
+</script>
+
+  <link rel="manifest" href="manifest.json?v=5">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=5">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=5">
+  <meta name="theme-color" content="#4caf50">
+</head>
+<body>
+  <!-- Menú hamburguesa -->
+  <header>
+    <h1>💸 Simulador de Gastos Mensuales</h1>
+    <button id="menuToggle" class="hamburger">☰</button>
+  </header>
+
+  <nav id="menu" class="menu-cerrado">
+    <ul>
+      <li data-section="seccionFormulario">Añadir Gasto/Beneficio</li>
+      <li data-section="seccionGraficoPorcentaje">Gráfica de Gastos</li>
+      <li data-section="seccionGraficoDiario">Gastos vs Beneficios (mensual)</li>
+      <li data-section="seccionHistorico">Histórico de Meses</li> <!-- Nuevo ítem -->
+    </ul>
+  </nav>
+
+  <main class="container">
+    <!-- Dark Mode -->
+    <button id="toggleDark"><span id="darkIcon">🌙</span></button>
+
+    <!-- Sección formulario -->
+    <section id="seccionFormulario">
+      <!-- Presupuesto -->
+      <div id="presupuesto-container">
+        <label for="presupuesto">Presupuesto mensual (€):</label>
+        <input type="number" id="presupuesto" placeholder="Ej. 1000">
+      </div>
+
+      <!-- Formulario -->
+      <form id="formulario">
+        <select id="tipo">
+          <option value="gasto">Gasto</option>
+          <option value="beneficio">Beneficio</option>
+        </select>
+        <input type="text" id="categoria" placeholder="Ej. Transporte" />
+        <input type="number" id="importe" placeholder="Ej. 120" />
+        <input type="date" id="fecha" />
+        <button type="submit">Agregar</button>
+      </form>
+
+      <!-- Filtros -->
+      <div id="filtros">
+        <input type="text" id="buscarCategoria" placeholder="Filtrar por categoría">
+        <input type="month" id="filtrarMes">
+      </div>
+
+      <!-- Tabla -->
+      <table>
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Categoría</th>
+            <th>Importe (€)</th>
+            <th>Fecha</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tablaGastos"></tbody>
+      </table>
+
+      <!-- Total -->
+      <div id="total">Total: 0 €</div>
+      <div id="alertaPresupuesto"></div>
+
+      <!-- Botones exportar/importar -->
+      <div id="exportar-importar">
+        <button id="exportCSV">Exportar CSV</button>
+        <button id="exportJSON">Exportar JSON</button>
+        <input type="file" id="importJSON" accept=".json">
+      </div>
+    </section>
+
+    <!-- Sección gráfica porcentaje -->
+    <section id="seccionGraficoPorcentaje" class="oculto">
+      <h2>📊 Distribución de Gastos</h2>
+      <canvas id="graficoGastos"></canvas>
+    </section>
+
+    <!-- Sección gráfica diaria -->
+    <section id="seccionGraficoDiario" class="oculto">
+      <h2>📊 Gastos vs Beneficios del mes actual</h2>
+      <canvas id="graficoDiario"></canvas>
+    </section>
+
+    <!-- Sección Histórico de Meses -->
+    <section id="seccionHistorico" class="oculto">
+      <h2>📅 Histórico de Meses</h2>
+      <label for="selectMesHistorico">Selecciona un mes:</label>
+      <select id="selectMesHistorico"></select>
+      <canvas id="graficoHistorico" style="margin-top: 1rem;"></canvas>
+      <div id="balanceHistorico" style="margin-top: 1rem; font-weight:bold;"></div>
+    </section>
+
+  </main>
+</body>
+</html>
