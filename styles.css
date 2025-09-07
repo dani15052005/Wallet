@@ -52,7 +52,7 @@ form input, form select, form button {
   transition: background 0.3s ease, color 0.3s ease, border 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* -------------------- Botones -------------------- */
+/* -------------------- Botones genéricos -------------------- */
 button,
 #exportar-importar button,
 #importJSON,
@@ -84,82 +84,52 @@ form button:active,
 }
 
 /* -------------------- Tabla -------------------- */
+.tabla-scroll {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 1rem;
   transition: background 0.3s ease;
 }
 
 th, td {
   padding: 0.7rem;
   text-align: left;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
-tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
+tr:nth-child(even) { background-color: #f9f9f9; }
 
 /* Animaciones filas */
-tr.fade-in {
-  animation: fadeIn 0.5s ease forwards;
-}
-
-tr.fade-out {
-  animation: fadeOut 0.5s ease forwards;
-}
+tr.fade-in { animation: fadeIn 0.5s ease forwards; }
+tr.fade-out { animation: fadeOut 0.5s ease forwards; }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes fadeOut {
   from { opacity: 1; transform: translateY(0); }
   to { opacity: 0; transform: translateX(-20px); }
 }
 
-td button {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  padding: 0.3rem 0.7rem;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-right: 0.3rem;
-  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-td button:hover {
-  background: #c0392b;
-  transform: scale(1.1);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-
-td button:active {
-  transform: translateY(0) scale(0.95);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
 /* -------------------- Tabla gastos/beneficios visual -------------------- */
-table tr.gasto {
-  background-color: #fdecea; /* tono rojo suave */
-}
+table tr.gasto       { background-color: #fdecea; }
+table tr.gasto:hover { background-color: #f9cfc7; }
 
-table tr.beneficio {
-  background-color: #eafaf1; /* tono verde suave */
-}
+table tr.beneficio       { background-color: #dff5ea; } /* más visible */
+table tr.beneficio:hover { background-color: #c9f0d9; }
 
-table tr.gasto:hover {
-  background-color: #f9cfc7; /* rojo más intenso al pasar el ratón */
-}
-
-table tr.beneficio:hover {
-  background-color: #c9f0d9; /* verde más intenso al pasar el ratón */
-}
-
-table td.categoria {
-  border-left-width: 6px;
+td.categoria {
+  font-weight: bold;
+  padding-left: 6px;
+  border-left: 6px solid transparent;
 }
 
 /* -------------------- Presupuesto y alertas -------------------- */
@@ -184,24 +154,24 @@ table td.categoria {
   transform: translateY(20px);
   opacity: 0;
 }
+#alertaPresupuesto.show { transform: translateY(0); opacity: 1; }
 
-#alertaPresupuesto.show {
-  transform: translateY(0);
-  opacity: 1;
+/* Campo presupuesto: tamaño final acordado */
+#presupuesto {
+  height: 34px;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  box-sizing: border-box;
 }
 
 /* -------------------- Categorías -------------------- */
 td.categoria {
-  font-weight: bold;
-  padding-left: 6px;
-  border-left: 6px solid transparent;
+  border-left-width: 6px;
 }
 
 /* -------------------- Dark Mode -------------------- */
-body.dark {
-  background: #121212;
-  color: #eee;
-}
+body.dark { background: #121212; color: #eee; }
 
 body.dark .container {
   background: #1e1e1e;
@@ -214,15 +184,21 @@ body.dark input, body.dark select, body.dark button {
   border: 1px solid #444;
 }
 
-body.dark table {
-  background: #2c2c2c;
+body.dark table { background: #2c2c2c; }
+body.dark tr:nth-child(even) { background: #333; }
+
+/* Importes coloreados en dark */
+body.dark tr.gasto td:nth-child(3)     { color: #f28b82; }
+body.dark tr.beneficio td:nth-child(3) { color: #81c995; }
+
+/* Borde visible en categoría (dark) */
+body.dark td.categoria {
+  border-left-width: 6px;
+  border-left-color: #888;
+  color: #eee;
 }
 
-body.dark tr:nth-child(even) {
-  background: #333;
-}
-
-/* -------------------- Dark Mode Botón -------------------- */
+/* -------------------- Botón Dark Mode -------------------- */
 #toggleDark {
   margin-bottom: 1rem;
   padding: 0.5rem;
@@ -230,66 +206,37 @@ body.dark tr:nth-child(even) {
   border-radius: 50%;
   width: 50px;
   height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   transition: background 0.4s ease, transform 0.4s ease;
 }
+#toggleDark:hover { transform: rotate(15deg) scale(1.1); }
 
-#toggleDark:hover {
-  transform: rotate(15deg) scale(1.1);
-}
-
-#darkIcon {
-  display: inline-block;
-  transition: transform 0.5s ease, opacity 0.3s ease;
-}
-
-body.dark #darkIcon {
-  transform: rotate(360deg);
-}
+#darkIcon { display: inline-block; transition: transform 0.5s ease, opacity 0.3s ease; }
+body.dark #darkIcon { transform: rotate(360deg); }
 
 /* -------------------- Menú hamburguesa -------------------- */
 #menuToggle {
   position: fixed;
-  top: 1rem;
-  right: 1rem;
-  width: 40px;
-  height: 40px;
+  top: 1rem; right: 1rem;
+  width: 40px; height: 40px;
   background: #4caf50;
   border-radius: 8px;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
+  display: flex; flex-direction: column; justify-content: space-around;
   padding: 5px;
   z-index: 1000;
   transition: transform 0.3s ease;
 }
+#menuToggle div { height: 4px; background: white; border-radius: 2px; transition: all 0.3s ease; }
 
-#menuToggle div {
-  height: 4px;
-  background: white;
-  border-radius: 2px;
-  transition: all 0.3s ease;
-}
-
-#menu.menu-abierto #menuToggle div:nth-child(1) {
-  transform: rotate(45deg) translate(7px, 7px);
-}
-
-#menu.menu-abierto #menuToggle div:nth-child(2) {
-  opacity: 0;
-}
-
-#menu.menu-abierto #menuToggle div:nth-child(3) {
-  transform: rotate(-45deg) translate(7px, -7px);
-}
+/* Estado abierto del botón hamburguesa */
+#menuToggle.abierto div:nth-child(1) { transform: rotate(45deg) translate(7px, 7px); }
+#menuToggle.abierto div:nth-child(2) { opacity: 0; }
+#menuToggle.abierto div:nth-child(3) { transform: rotate(-45deg) translate(7px, -7px); }
 
 #menu {
   position: fixed;
-  top: 60px;
-  right: -250px;
+  top: 60px; right: -250px;
   width: 200px;
   background: #4caf50;
   border-radius: 8px;
@@ -298,10 +245,7 @@ body.dark #darkIcon {
   transition: right 0.3s ease;
   z-index: 999;
 }
-
-#menu.menu-abierto {
-  right: 1rem;
-}
+#menu.menu-abierto { right: 1rem; }
 
 #menu li {
   list-style: none;
@@ -311,43 +255,85 @@ body.dark #darkIcon {
   font-weight: bold;
   transition: color 0.3s ease;
 }
+#menu li:hover { text-decoration: underline; color: #e0f2f1; }
 
-#menu li:hover {
-  text-decoration: underline;
-  color: #e0f2f1;
+/* Overlay + desenfoque del contenido cuando el menú está abierto */
+#menuOverlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 998;
 }
+#menuOverlay.show { opacity: 1; pointer-events: auto; }
+body.menu-open .container {
+  filter: blur(4px);
+  transition: filter .25s ease;
+}
+#menuToggle { z-index: 1002; }
+
+
 
 /* -------------------- Secciones -------------------- */
-section.oculto {
-  display: none;
-}
+section.oculto { display: none; }
 
-/* -------------------- Responsivo -------------------- */
-@media (max-width: 600px) {
-  .container {
-    padding: 1rem;
+/* -------------------- Responsivo: vista “tarjeta” en móvil -------------------- */
+@media (max-width: 560px) {
+  table thead { display: none; }
+  table, tbody, tr, td { display: block; width: 100%; }
+  tbody { display: block; }
+
+  tr {
+    margin-bottom: 0.75rem;
+    background: #ffffff;
+    border: 1px solid #eaeaea;
+    border-radius: 12px;
+    padding: 0.6rem 0.75rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
   }
-  form input, form select, form button {
-    flex: 1 1 100%;
+  body.dark tr {
+    background: #1e1e1e;
+    border-color: #333;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.35);
   }
+
+  td {
+    display: grid;
+    grid-template-columns: 9.5ch 1fr;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0;
+  }
+
+  td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #555;
+  }
+  body.dark td::before { color: #ddd; }
+
+  /* Última celda (Acciones) con botones a la derecha */
+  td:last-child {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    padding-top: 0.6rem;
+  }
+
+  /* Mantener el borde de color en la categoría */
+  td.categoria { border-left-width: 6px !important; padding-left: 8px; }
+
+  /* Forzar texto claro en dark */
+  body.dark table, body.dark tbody, body.dark tr, body.dark td { color: #eee !important; }
 }
 
 /* -------------------- Balance Colores -------------------- */
-.balance-verde {
-  color: #2ecc71;
-}
-
-.balance-amarillo {
-  color: #f1c40f;
-}
-
-.balance-naranja {
-  color: #e67e22;
-}
-
-.balance-rojo {
-  color: #e74c3c;
-}
+.balance-verde { color: #2ecc71; }
+.balance-amarillo { color: #f1c40f; }
+.balance-naranja { color: #e67e22; }
+.balance-rojo { color: #e74c3c; }
 
 /* -------------------- Botones filtros y exportación -------------------- */
 #filtros input[type="text"] {
@@ -359,7 +345,6 @@ section.oculto {
   cursor: text;
   transition: border 0.3s ease, box-shadow 0.3s ease;
 }
-
 #filtros input[type="text"]:focus {
   outline: none;
   border-color: #4caf50;
@@ -369,14 +354,13 @@ section.oculto {
 #filtros input[type="month"],
 #filtros input[type="date"] {
   border-radius: 8px;
-  border: none;
+  border: 1px solid transparent;
   padding: 0.5rem 0.7rem;
   background: #4caf50;
   color: white;
   cursor: pointer;
   transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.2s ease;
 }
-
 #filtros input[type="month"]:hover,
 #filtros input[type="date"]:hover {
   background: #45a049;
@@ -384,121 +368,337 @@ section.oculto {
   box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
 
+/* Export / Import barra: alto unificado (34px) */
+#exportar-importar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
 #exportar-importar button,
 #importJSON {
+  height: 34px;
+  padding: 0 0.75rem;
   border-radius: 8px;
-  border: 1px solid #ccc;
-  padding: 0.5rem 0.7rem;
-  background: #4caf50;
-  color: white;
-  cursor: pointer;
-  transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.2s ease;
+  line-height: 32px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  font-size: 0.9rem;
 }
 
-#exportar-importar button:hover,
-#importJSON:hover {
-  background: #45a049;
-  transform: scale(1.05);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+/* Input file: sub-botón igualado en altura */
+#importJSON { overflow: hidden; white-space: nowrap; max-width: 260px; }
+#importJSON::file-selector-button,
+#importJSON::-webkit-file-upload-button {
+  height: 100%;
+  padding: 0 0.75rem;
+  margin: 0;
+  border: none;
+  border-radius: 8px;
+  line-height: 32px;
+  font-size: 0.9rem;
 }
 
-#importJSON {
-  padding: 0.3rem;
+/* Dark mode: negro/blanco coherente para export/import y filtros */
+body.dark #exportar-importar button,
+body.dark #importJSON {
+  background: #111 !important;
+  color: #fff !important;
+  border: 1px solid #444 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+body.dark #exportar-importar button:hover,
+body.dark #importJSON:hover {
+  background: #e74c3c !important;
+  color: #fff !important;
+  border-color: #e74c3c !important;
+  box-shadow: 0 4px 10px rgba(231,76,60,.35);
+}
+body.dark #importJSON::file-selector-button,
+body.dark #importJSON::-webkit-file-upload-button {
+  background: #111; color: #fff; border: 1px solid #444; border-radius: 8px;
+}
+body.dark #importJSON::file-selector-button:hover,
+body.dark #importJSON::-webkit-file-upload-button:hover {
+  background: #e74c3c; color: #fff; border-color: #e74c3c;
+}
+body.dark #filtros input[type="month"],
+body.dark #filtros input[type="date"] {
+  background: #111 !important;
+  color: #fff !important;
+  border: 1px solid #444 !important;
+  box-shadow: none; transform: none;
+}
+body.dark #filtros input[type="month"]:hover,
+body.dark #filtros input[type="date"]:hover {
+  background: #222 !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+body.dark #filtros input[type="month"]::-webkit-calendar-picker-indicator,
+body.dark #filtros input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
 }
 
-/* -------------------- Banner actualización / alertas -------------------- */
+/* -------------------- Banner actualización -------------------- */
 .banner-actualizacion {
   position: fixed;
-  bottom: -60px;
-  left: 1rem;
-  right: 1rem;
+  bottom: -60px; left: 1rem; right: 1rem;
   padding: 0.6rem;
-  background: #4caf50;
-  color: white;
-  text-align: center;
-  border-radius: 8px;
-  z-index: 9999;
-  font-weight: bold;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.5rem;
+  background: #4caf50; color: white; text-align: center;
+  border-radius: 8px; z-index: 9999; font-weight: bold;
+  display: flex; justify-content: center; align-items: center; gap: 0.5rem;
   transition: bottom 0.5s ease, opacity 0.5s ease;
   opacity: 0;
 }
-
-.banner-actualizacion.show {
-  bottom: 1rem;
-  opacity: 1;
-}
-
+.banner-actualizacion.show { bottom: 1rem; opacity: 1; }
 .banner-actualizacion button {
   padding: 0.3rem 0.6rem;
-  border-radius: 6px;
-  border: none;
-  background: #388e3c;
-  color: white;
-  cursor: pointer;
+  border-radius: 6px; border: none;
+  background: #388e3c; color: white; cursor: pointer;
   transition: background 0.3s ease, transform 0.2s ease;
 }
+.banner-actualizacion button:hover { background: #2e7d32; transform: scale(1.05); }
 
-.banner-actualizacion button:hover {
-  background: #2e7d32;
-  transform: scale(1.05);
+/* -------------------- Botones de Acciones (Editar / Eliminar) -------------------- */
+table th:last-child,
+table td:last-child {
+  width: 96px;
+  text-align: right;
+  white-space: nowrap;
+}
+td.acciones { white-space: nowrap; }
+
+td.acciones button,
+td button.editar,
+td button.eliminar {
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  min-width: 42px; height: 36px;
+  padding: 0.3rem 0.55rem;
+  margin-left: 6px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff; color: #222;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  transition: background .2s, color .2s, border-color .2s, box-shadow .15s, transform .15s;
+}
+td.acciones button:hover,
+td button.editar:hover,
+td button.eliminar:hover {
+  background: #e74c3c; color: #fff; border-color: #e74c3c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(231,76,60,.25);
+}
+td.acciones button:active,
+td button.editar:active,
+td button.eliminar:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(231,76,60,.2);
+}
+body.dark td.acciones button,
+body.dark td button.editar,
+body.dark td button.eliminar {
+  background: #111; color: #eee; border: 1px solid #444;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+body.dark td.acciones button:hover,
+body.dark td button.editar:hover,
+body.dark td button.eliminar:hover {
+  background: #e74c3c; color: #fff; border-color: #e74c3c;
+  box-shadow: 0 4px 10px rgba(231,76,60,.35);
 }
 
-/* -------------------- Dark Mode Tabla y Contrastes -------------------- */
-body.dark table {
-  background: #2c2c2c;
-  color: #eee;
+/* Accesibilidad: foco teclado */
+td button.editar:focus-visible,
+td button.eliminar:focus-visible,
+td.acciones button:focus-visible {
+  outline: 2px solid #4caf50;
+  outline-offset: 2px;
 }
 
-body.dark tr:nth-child(even) {
-  background: #333;
+/* Dark mode: fondos oscuros para que el texto blanco se lea bien */
+body.dark table tr.gasto       { background-color: #3a1b1b; }
+body.dark table tr.gasto:hover { background-color: #5a2727; }
+
+body.dark table tr.beneficio       { background-color: #113a23; }
+body.dark table tr.beneficio:hover { background-color: #174a2f; }
+
+/* 1) Presupuesto: alineado con la etiqueta y tamaño cómodo */
+#presupuesto-container{
+  display: flex;              /* asegura alineación horizontal */
+  align-items: center;        /* centra verticalmente label + input */
+  gap: .75rem;
+}
+#presupuesto-container label{
+  line-height: 1;             /* evita que “empuje” hacia arriba/abajo */
+}
+#presupuesto{
+  height: 34px;               /* tamaño final */
+  padding: .35rem .55rem;
+  font-size: .9rem;
+  border-radius: 8px;
+  box-sizing: border-box;
 }
 
-body.dark table tr.gasto {
-  background-color: #4b1c1c; /* rojo oscuro para modo oscuro */
+/* 2) Filtros de fecha: mismo gris oscuro que los botones en dark */
+body.dark #filtros input[type="month"],
+body.dark #filtros input[type="date"]{
+  background: #111 !important;
+  color: #fff !important;
+  border: 1px solid #444 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.5);
+}
+body.dark #filtros input[type="month"]:hover,
+body.dark #filtros input[type="date"]:hover{
+  background: #222 !important;
 }
 
-body.dark table tr.gasto:hover {
-  background-color: #601e1e; /* rojo más intenso al hover */
+/* 3) “Seleccionar archivo”: cuadra y muévelo un pelín a la izquierda */
+#exportar-importar{
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+#importJSON{
+  height: 34px;               /* igual que los otros */
+  line-height: 32px;
+  padding: 0 .75rem;
+  border-radius: 8px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  max-width: 260px;           /* evita que se desmadre con el nombre */
+  margin-left: -6px;          /* << desplaza un poco hacia la izquierda */
+}
+#importJSON::file-selector-button,
+#importJSON::-webkit-file-upload-button{
+  height: 100%;
+  padding: 0 .75rem;
+  margin: 0;                  /* sin margen extra que descuadre */
+  border: none;
+  border-radius: 8px;
+  line-height: 32px;
+  font-size: .9rem;
 }
 
-body.dark table tr.beneficio {
-  background-color: #1c4b2c; /* verde oscuro para modo oscuro */
+/* 1) DARK MODE: filtros de fecha con el MISMO gris que los demás botones */
+body.dark #filtros input[type="month"],
+body.dark #filtros input[type="date"]{
+  background: #2c2c2c !important;  /* antes negro: #111 */
+  color: #fff !important;
+  border: 1px solid #444 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.5);
+}
+body.dark #filtros input[type="month"]:hover,
+body.dark #filtros input[type="date"]:hover{
+  background: #333 !important;
 }
 
-body.dark table tr.beneficio:hover {
-  background-color: #1e601e; /* verde más intenso al hover */
+/* 2) “Seleccionar archivo”: misma altura y bien cuadrado */
+#exportar-importar{
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-/* Colores de importe adaptados a modo oscuro */
-body.dark tr.gasto td:nth-child(3) {
-  color: #f28b82; /* rojo más claro para resaltar gasto */
+#exportar-importar button,
+#importJSON{
+  height: 34px;                 /* mismo alto en los tres */
+  font-size: .9rem;
 }
 
-body.dark tr.beneficio td:nth-child(3) {
-  color: #81c995; /* verde más claro para resaltar beneficio */
+/* quita desplazamientos previos si los hubiera */
+#importJSON{ 
+  display: inline-flex;
+  align-items: center;
+  padding: 0 .75rem;            /* caja externa */
+  line-height: 34px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  margin-left: -2px;            /* sutil ajuste hacia la izquierda */
 }
 
-/* Color de categoría con borde visible */
-body.dark td.categoria {
-  border-left-width: 6px;
-  border-left-color: #888; /* borde visible en dark mode */
-  color: #eee;
+/* botón interno del input file: exactamente encajado */
+#importJSON::file-selector-button,
+#importJSON::-webkit-file-upload-button{
+  height: 100%;
+  padding: 0 .75rem;
+  margin: 0 .5rem 0 0;          /* separa del texto del nombre de archivo */
+  border: none;
+  border-radius: 8px;
+  line-height: 34px;
 }
 
-/* -------------------- Dark Mode Botones Tabla (colores elegantes) -------------------- */
-body.dark td button {
-  background: #607d8b; /* gris azulado */
+/* === Input file perfectamente alineado === */
+#exportar-importar{
+  display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;
+}
+
+/* El contenedor del file input: sin padding ni márgenes raros */
+#importJSON{
+  height:34px;
+  line-height:34px;
+  font-size:.9rem;
+  border-radius:8px;
+  box-sizing:border-box;
+  display:inline-flex;
+  align-items:center;
+  white-space:nowrap;
+  padding:0;                 /* <- quita el “hueco” a la izquierda */
+  margin-left:0 !important;  /* <- por si quedó algún ajuste previo */
+  overflow:hidden;           /* <- recorta las esquinas del botón interno */
+}
+
+/* Botón interno: pegado a la izquierda y con esquinas izquierdas redondeadas */
+#importJSON::file-selector-button,
+#importJSON::-webkit-file-upload-button{
+  height:100%;
+  margin:0;                  /* nada de margen que lo desplace */
+  padding:0 .75rem;
+  border:none;
+  border-radius:8px 0 0 8px; /* <- coincide con el borde del input */
+  line-height:34px;
+  font-size:.9rem;
+}
+
+/* Espacio visual entre el sub-botón y el nombre del archivo */
+#importJSON::file-selector-button{ margin-right:.5rem; }
+#importJSON::-webkit-file-upload-button{ margin-right:.5rem; }
+
+/* Light mode: sub-botón del input file en verde */
+body:not(.dark) #importJSON::file-selector-button,
+body:not(.dark) #importJSON::-webkit-file-upload-button{
+  background: #4caf50;
   color: #fff;
+  border: none;
+  border-radius: 8px 0 0 8px;  /* mantiene las esquinas alineadas a la izquierda */
 }
 
-body.dark td button:hover {
-  background: #78909c; /* gris azulado más claro */
+body:not(.dark) #importJSON::file-selector-button:hover,
+body:not(.dark) #importJSON::-webkit-file-upload-button:hover{
+  background: #388e3c;        /* verde un poco más oscuro al pasar el ratón */
 }
 
-body.dark td button:active {
-  background: #546e7a; /* gris azulado más oscuro */
+/* Dark mode: filtro de categoría con el mismo gris que los demás */
+body.dark #filtros input[type="text"]{
+  background: #2c2c2c !important;
+  color: #fff !important;
+  border: 1px solid #444 !important;
+  box-shadow: none;
+}
+body.dark #filtros input[type="text"]::placeholder{
+  color: #bbb;
+}
+body.dark #filtros input[type="text"]:hover{
+  background: #333 !important;
+}
+body.dark #filtros input[type="text"]:focus{
+  border-color: #4caf50 !important;
+  box-shadow: 0 0 5px rgba(76,175,80,.35);
 }

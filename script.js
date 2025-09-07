@@ -9,11 +9,13 @@ banner.style.background = '#ffcc00'; // color amarillo para offline
 banner.textContent = 'Sin conexión: algunos recursos pueden no estar disponibles';
 document.body.appendChild(banner);
 
-// Mostrar u ocultar con la clase 'show'
+// Mostrar / ocultar según estado de red
 function updateNetworkStatus() {
   if (navigator.onLine) {
     banner.classList.remove('show');
   } else {
+    banner.textContent = 'Sin conexión: algunos recursos pueden no estar disponibles';
+    banner.style.background = '#ffcc00';
     banner.classList.add('show');
   }
 }
@@ -21,63 +23,51 @@ window.addEventListener('online', updateNetworkStatus);
 window.addEventListener('offline', updateNetworkStatus);
 updateNetworkStatus();
 
+// SW actualización (protegido por disponibilidad)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (!event.data) return;
 
-function updateNetworkStatus() {
-  if (navigator.onLine) {
-    banner.style.display = 'none';
-  } else {
-    banner.textContent = 'Sin conexión: algunos recursos pueden no estar disponibles';
-    banner.style.background = '#ffcc00';
-    banner.style.display = 'block';
-  }
-}
-window.addEventListener('online', updateNetworkStatus);
-window.addEventListener('offline', updateNetworkStatus);
-updateNetworkStatus();
+    function showBanner(message, btnText, onClick) {
+      if (document.getElementById('reloadApp')) return;
+      const refreshBanner = document.createElement('div');
+      refreshBanner.className = 'banner-actualizacion';
+      refreshBanner.innerHTML = `${message} <button id="reloadApp">${btnText}</button>`;
+      document.body.appendChild(refreshBanner);
 
-// SW actualización
-navigator.serviceWorker.addEventListener('message', (event) => {
-  if (!event.data) return;
+      // Activar animación deslizante
+      setTimeout(() => refreshBanner.classList.add('show'), 50);
 
-  function showBanner(message, btnText, onClick) {
-  if (document.getElementById('reloadApp')) return;
-  const refreshBanner = document.createElement('div');
-  refreshBanner.className = 'banner-actualizacion';
-  refreshBanner.innerHTML = `${message} <button id="reloadApp">${btnText}</button>`;
-  document.body.appendChild(refreshBanner);
+      document.getElementById('reloadApp').addEventListener('click', onClick);
+    }
 
-  // Activar animación deslizante
-  setTimeout(() => refreshBanner.classList.add('show'), 50);
-
-  document.getElementById('reloadApp').addEventListener('click', onClick);
-}
-
-  if (event.data.type === 'SW_UPDATED') {
-    showBanner(
-      'Nueva versión disponible.',
-      'Recargar',
-      () => {
-        if (navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+    if (event.data.type === 'SW_UPDATED') {
+      showBanner(
+        'Nueva versión disponible.',
+        'Recargar',
+        () => {
+          if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+          }
+          window.location.reload();
         }
-        window.location.reload();
-      }
-    );
-  }
+      );
+    }
 
-  if (event.data.type === 'SW_UPDATED_PARTIAL') {
-    showBanner(
-      'Algunos recursos se han actualizado.',
-      'Actualizar recursos',
-      async () => {
-        try {
-          await fetch(event.data.url, { cache: "reload" });
-        } catch {}
-        window.location.reload();
-      }
-    );
-  }
-});
+    if (event.data.type === 'SW_UPDATED_PARTIAL') {
+      showBanner(
+        'Algunos recursos se han actualizado.',
+        'Actualizar recursos',
+        async () => {
+          try {
+            await fetch(event.data.url, { cache: "reload" });
+          } catch {}
+          window.location.reload();
+        }
+      );
+    }
+  });
+}
 
 // -------------------- Variables --------------------
 const form = document.getElementById("formulario");
@@ -101,6 +91,33 @@ const darkIcon = document.getElementById("darkIcon");
 const menuToggle = document.getElementById("menuToggle");
 const menu = document.getElementById("menu");
 const secciones = document.querySelectorAll("main section");
+
+const selectMesHistorico = document.getElementById("selectMesHistorico");
+const balanceHistorico = document.getElementById("balanceHistorico");
+const graficoHistoricoCanvas = document.getElementById("graficoHistorico");
+const tituloGraficoDiario = document.getElementById("tituloGraficoDiario");
+
+// Overlay para desenfoque al abrir el menú
+const menuOverlay = document.createElement('div');
+menuOverlay.id = 'menuOverlay';
+document.body.appendChild(menuOverlay);
+
+// Cerrar al pulsar fuera (en el overlay)
+menuOverlay.addEventListener('click', () => {
+  menu.classList.remove('menu-abierto');
+  menuToggle.classList.remove('abierto');
+  menuToggle.setAttribute('aria-expanded','false');
+  document.body.classList.remove('menu-open');
+  menuOverlay.classList.remove('show');
+});
+
+// Crea las 3 barritas del icono hamburguesa si el botón no las tiene
+if (menuToggle && menuToggle.children.length === 0) {
+  menuToggle.innerHTML = '<div></div><div></div><div></div>';
+  menuToggle.setAttribute('aria-label','Abrir menú');
+  menuToggle.setAttribute('aria-controls','menu');
+  menuToggle.setAttribute('aria-expanded','false');
+}
 
 // -------------------- Datos persistentes --------------------
 let gastos = JSON.parse(localStorage.getItem("gastos")) || [];
@@ -142,8 +159,7 @@ if (mesActual !== mesGuardado) {
   mesGuardado = mesActual;
 }
 
-// 3) Reparación defensiva: si por un fallo previo hay gastos de otros meses mezclados,
-//    los mandamos a su mes correspondiente y dejamos en "gastos" solo el mes actual.
+// 3) Reparación defensiva
 (() => {
   if (!Array.isArray(gastos) || gastos.length === 0) return;
 
@@ -152,7 +168,6 @@ if (mesActual !== mesGuardado) {
 
   for (const g of gastos) {
     if (!g || !g.fecha || typeof g.fecha !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(g.fecha)) {
-      // Si no hay fecha válida, lo dejamos como actual para no perder datos
       actuales.push(g);
       continue;
     }
@@ -164,13 +179,11 @@ if (mesActual !== mesGuardado) {
     }
   }
 
-  // Volcar cada grupo a su clave "gastos_YYYY-MM"
   for (const [m, arr] of Object.entries(porMes)) {
     const ya = JSON.parse(localStorage.getItem(`gastos_${m}`)) || [];
     localStorage.setItem(`gastos_${m}`, JSON.stringify(ya.concat(arr)));
   }
 
-  // Si hubo movimientos reubicados, persistimos la corrección
   if (actuales.length !== gastos.length) {
     gastos = actuales;
     localStorage.setItem("gastos", JSON.stringify(gastos));
@@ -202,6 +215,11 @@ function hashCode(str) {
   return str.split("").reduce((acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0);
 }
 
+function capitalizeFirst(str = "") {
+  if (!str) return "";
+  return str.charAt(0).toLocaleUpperCase('es-ES') + str.slice(1);
+}
+
 // Generador de IDs únicos (string)
 function generarId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2,9);
@@ -219,28 +237,34 @@ function renderTabla() {
   const gastosFiltrados = gastosAMostrar.filter(g => !filtroCat || g.categoria.toLowerCase().includes(filtroCat));
 
   gastosFiltrados.forEach((gasto) => {
-    const fila = document.createElement("tr");
-fila.classList.add("fade-in");
+  const fila = document.createElement("tr");
+  fila.classList.add("fade-in");
 
-// Asignar clase según tipo
-if (gasto.tipo === "gasto") fila.classList.add("gasto");
-else fila.classList.add("beneficio");
+  // Asignar clase según tipo
+  if (gasto.tipo === "gasto") fila.classList.add("gasto");
+  else fila.classList.add("beneficio");
+
+  // Etiquetas con mayúscula
+  const tipoLabel = gasto.tipo === "gasto" ? "Gasto" : "Beneficio";
+const categoriaLabel = capitalizeFirst((gasto.categoria || "").trim());
 
 fila.innerHTML = `
-  <td>${gasto.tipo}</td>
-  <td class="categoria" style="border-color:${getColor(gasto.categoria)}">${gasto.categoria}</td>
-  <td style="color: ${gasto.tipo === "gasto" ? '#e74c3c' : '#2ecc71'}">
+  <td data-label="Tipo">${tipoLabel}</td>
+  <td class="categoria" data-label="Categoría" style="border-color:${getColor(categoriaLabel)}">${categoriaLabel}</td>
+  <td data-label="Importe (€)" style="color: ${gasto.tipo === "gasto" ? '#e74c3c' : '#2ecc71'}">
     ${gasto.tipo === "gasto" ? "-" : ""}${gasto.importe.toFixed(2)} €
   </td>
-  <td>${gasto.fecha}</td>
-  <td>
-    ${filtroMes === mesActual ? `<button class="editar" data-id="${gasto.id}">✏️</button>
-    <button class="eliminar" data-id="${gasto.id}">🗑️</button>` : ""}
-  </td>
+  <td data-label="Fecha">${gasto.fecha}</td>
+  <td class="acciones">
+  ${filtroMes === mesActual ? `
+    <button class="editar" data-id="${gasto.id}" aria-label="Editar" title="Editar">✏️</button>
+    <button class="eliminar" data-id="${gasto.id}" aria-label="Eliminar" title="Eliminar">🗑️</button>
+  ` : ""}
+</td>
 `;
-tabla.appendChild(fila);
-    total += gasto.tipo === "gasto" ? -gasto.importe : gasto.importe;
-  });
+  tabla.appendChild(fila);
+  total += gasto.tipo === "gasto" ? -gasto.importe : gasto.importe;
+});
 
   totalEl.textContent = `Balance: ${total.toFixed(2)} €`;
   if (total > 100) totalEl.style.color = "#2ecc71";
@@ -249,32 +273,53 @@ tabla.appendChild(fila);
   else totalEl.style.color = "#e74c3c";
 
   if (presupuesto && total < -presupuesto && filtroMes === mesActual) {
-  alertaPresupuesto.textContent = "⚠️ Has superado tu presupuesto mensual";
-  alertaPresupuesto.classList.add("show");
-} else {
-  alertaPresupuesto.textContent = "";
-  alertaPresupuesto.classList.remove("show");
-}
+    alertaPresupuesto.textContent = "⚠️ Has superado tu presupuesto mensual";
+    alertaPresupuesto.classList.add("show");
+  } else {
+    alertaPresupuesto.textContent = "";
+    alertaPresupuesto.classList.remove("show");
+  }
 
   if (filtroMes === mesActual) localStorage.setItem("gastos", JSON.stringify(gastos));
 
   renderGraficoPorcentaje(filtroMes);
   renderGraficoDiario(filtroMes);
+  renderGraficoHistorico();
 }
 
 // -------------------- CRUD (por id) --------------------
 function eliminarGastoPorId(id) {
   if (!confirm("¿Seguro que deseas eliminar este gasto?")) return;
+
   const idx = gastos.findIndex(g => String(g.id) === String(id));
   if (idx === -1) return;
-  gastos.splice(idx, 1);
-  renderTabla();
+
+  // Busca la fila en la tabla para animarla
+  const row = tabla.querySelector(`button.eliminar[data-id="${id}"]`)?.closest('tr');
+
+  if (row) {
+    row.classList.add('fade-out'); // ya definida en tu CSS (translateX -20px + opacity)
+    row.addEventListener('animationend', () => {
+      gastos.splice(idx, 1);
+      renderTabla();
+    }, { once: true });
+  } else {
+    // fallback por si no encuentra la fila (por ejemplo, si ya se redibujó)
+    gastos.splice(idx, 1);
+    renderTabla();
+  }
 }
 
 function editarGastoPorId(id) {
-  if (filtrarMes.value !== mesActual) return;
+  // usar el mismo criterio que la tabla
+  const filtroMesActual = filtrarMes.value || mesActual;
+  if (filtroMesActual !== mesActual) return;
+
   const idx = gastos.findIndex(g => String(g.id) === String(id));
   if (idx === -1) return;
+
+  // Confirmación antes de editar
+  if (!confirm("¿Seguro que quieres editar los datos?")) return;
 
   const gasto = gastos[idx];
   tipoInput.value = gasto.tipo;
@@ -282,6 +327,7 @@ function editarGastoPorId(id) {
   importeInput.value = gasto.importe;
   fechaInput.value = gasto.fecha || new Date().toISOString().slice(0,10);
 
+  // Quitamos el registro para re-guardarlo al enviar el formulario
   gastos.splice(idx, 1);
   renderTabla();
 }
@@ -381,7 +427,6 @@ importJSONInput.addEventListener("change", e => {
     try {
       const datos = JSON.parse(reader.result);
       if (Array.isArray(datos)) {
-        // Combinar con los gastos existentes
         const idsExistentes = new Set(gastos.map(g => g.id));
         const nuevos = datos.map(item => ({
           ...item,
@@ -405,46 +450,121 @@ toggleDarkBtn.addEventListener("click", () => {
   body.classList.toggle("dark");
   localStorage.setItem("darkMode", body.classList.contains("dark"));
   darkIcon.textContent = body.classList.contains("dark") ? "☀️" : "🌙";
+
+  // Re-render para que la leyenda tome el color del tema
+  const m = filtrarMes.value || mesActual;
+  renderGraficoPorcentaje(m);
+  renderGraficoDiario(m);
+  if (typeof renderGraficoHistorico === "function") renderGraficoHistorico();
+
+  // 👇 actualizar el borde de la tarta al cambiar de tema
+  if (chartPorcentaje) {
+    const borde = body.classList.contains('dark') ? '#fff' : '#000';
+    chartPorcentaje.data.datasets[0].borderColor = borde;
+    chartPorcentaje.data.datasets[0].borderWidth = 1;
+    chartPorcentaje.update();
+  }
 });
 
 // -------------------- Gráficos --------------------
-let chartPorcentaje, chartDiario;
+let chartPorcentaje, chartDiario, chartHistorico;
 
 function renderGraficoPorcentaje(mesFiltrado) {
-  const gastosAMostrar = mesFiltrado === mesActual ? gastos : JSON.parse(localStorage.getItem(`gastos_${mesFiltrado}`)) || [];
+  // Renderiza solo si la sección está visible
+  const seccion = document.getElementById("seccionGraficoPorcentaje");
+  if (seccion && seccion.classList.contains("oculto")) return;
+
+  const gastosAMostrar = mesFiltrado === mesActual
+    ? gastos
+    : JSON.parse(localStorage.getItem(`gastos_${mesFiltrado}`)) || [];
+
+  // ✅ Agrupar categorías con primera letra en mayúscula
   const categorias = {};
-  gastosAMostrar.filter(g => g.tipo === "gasto").forEach(g => {
-    categorias[g.categoria] = (categorias[g.categoria] || 0) + g.importe;
-  });
+  gastosAMostrar
+    .filter(g => g.tipo === "gasto")
+    .forEach(g => {
+      const key = capitalizeFirst((g.categoria || "").trim());
+      categorias[key] = (categorias[key] || 0) + g.importe;
+    });
 
   const canvas = document.getElementById("graficoGastos");
-  canvas.style.maxHeight = "400px"; 
+  // Tamaño vía CSS (no usar canvas.height en responsive)
+  canvas.style.height = '400px';
+  canvas.style.maxHeight = '400px';
   const ctx = canvas.getContext("2d");
 
-  // Si no hay datos, limpiar gráfico y mostrar mensaje
+  // Si no hay datos, limpiar y mostrar mensaje
   if (Object.keys(categorias).length === 0) {
     if (chartPorcentaje) chartPorcentaje.destroy();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.font = "16px Arial";
-    ctx.fillStyle = "#333";
+    ctx.fillStyle = body.classList.contains('dark') ? "#eee" : "#333";
     ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
     ctx.fillText("No hay gastos este mes", canvas.width / 2, canvas.height / 2);
     return;
   }
 
   if (chartPorcentaje) chartPorcentaje.destroy();
+
+  // Colores dependientes de tema
+  const bordePastel = body.classList.contains('dark') ? '#fff' : '#000';
+  const legendTextColor = body.classList.contains('dark') ? '#fff' : '#222';
+
+  const labels = Object.keys(categorias);
+  const dataValues = Object.values(categorias);
+
   chartPorcentaje = new Chart(ctx, {
     type: "pie",
     data: {
-      labels: Object.keys(categorias),
+      labels,
       datasets: [{
-        data: Object.values(categorias),
-        backgroundColor: Object.keys(categorias).map(getColor)
+        data: dataValues,
+        // ✅ Colores basados en la categoría ya capitalizada
+        backgroundColor: labels.map(lbl => getColor(lbl)),
+        hoverOffset: 8,
+        borderColor: bordePastel,   // borde de los arcos del pastel
+        borderWidth: 1
       }]
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false
+      maintainAspectRatio: false,
+      animation: { duration: 1200, easing: 'easeOutQuart' },
+      // Animación de “apertura” (sin escalar el radio)
+      animations: {
+        circumference: { from: 0, duration: 1200, easing: 'easeOutQuart' },
+        rotation:      { from: -Math.PI, duration: 1200, easing: 'easeOutQuart' }
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            color: legendTextColor, // texto blanco/negro según tema
+            // Leyenda sin borde y con nombres correctos
+            generateLabels: (chart) => {
+              const labelsArr = chart.data.labels || [];
+              const meta = chart.getDatasetMeta(0);
+              return labelsArr.map((text, i) => {
+                const style = meta.controller.getStyle(i);
+                return {
+                  text,
+                  fillStyle: style.backgroundColor,
+                  strokeStyle: 'transparent',
+                  lineWidth: 0,
+                  hidden: !chart.getDataVisibility(i),
+                  index: i
+                };
+              });
+            }
+          },
+          onClick: (e, legendItem, legend) => {
+            const index = legendItem.index;
+            legend.chart.toggleDataVisibility(index);
+            legend.chart.update();
+          }
+        }
+      }
     }
   });
 }
@@ -471,34 +591,257 @@ function renderGraficoDiario(mesFiltrado) {
 
   if (chartDiario) chartDiario.destroy();
 
-  chartDiario = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [
-        { label: "Gastos", data: datosGastos, backgroundColor: "#e74c3c" },
-        { label: "Beneficios", data: datosBeneficios, backgroundColor: "#2ecc71" }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: { y: { beginAtZero: true } },
-      plugins: { legend: { position: 'top' } }
+chartDiario = new Chart(ctx, {
+  type: "bar",
+  data: {
+    labels,
+    datasets: [
+      { label: "Gastos", data: datosGastos, backgroundColor: "#e74c3c" },
+      { label: "Beneficios", data: datosBeneficios, backgroundColor: "#2ecc71" }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: { y: { beginAtZero: true } },
+    plugins: { legend: { position: 'top' } },
+
+    // 👇 animación “desde abajo” (baseline = 0)
+    animation: { duration: 1000, easing: 'easeOutCubic' },
+    animations: {
+      y: {
+        type: 'number',
+        from: ctx => ctx.chart.scales.y.getPixelForValue(0),
+        duration: 1000,
+        easing: 'easeOutCubic'
+      }
+      // (no tocamos height/base para evitar saltos)
     }
+  }
+});
+}
+
+// ---- Helper: color del balance para el histórico
+function setBalanceColor(el, value){
+  if (!el) return;
+  el.classList.remove('balance-verde','balance-amarillo','balance-naranja','balance-rojo');
+  if (value > 100) el.classList.add('balance-verde');
+  else if (value >= 50) el.classList.add('balance-amarillo');
+  else if (value > 0) el.classList.add('balance-naranja');
+  else el.classList.add('balance-rojo');
+}
+
+function setTituloGraficoDiario(){
+  if (!tituloGraficoDiario) return;
+  const d = new Date(mesActual + "-01T00:00:00");
+  let etiqueta = d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+  etiqueta = etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1);
+  tituloGraficoDiario.textContent = `📊 Gastos vs Beneficios de ${etiqueta}`;
+}
+
+// ---- Histórico de meses
+function getAvailableMonths(){
+  const months = new Set();
+  Object.keys(localStorage).forEach(k => {
+    if (k.startsWith('gastos_')) months.add(k.slice(7));
   });
+  if (Array.isArray(gastos) && gastos.length > 0) months.add(mesActual);
+  return Array.from(months).sort();
+}
+
+function populateSelectHistorico(){
+  if (!selectMesHistorico) return;
+  const current = selectMesHistorico.value;
+  const months = getAvailableMonths();
+  selectMesHistorico.innerHTML = '';
+  const optAll = document.createElement('option');
+  optAll.value = 'todos';
+  optAll.textContent = 'Todos los meses';
+  selectMesHistorico.appendChild(optAll);
+  months.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = m;
+    selectMesHistorico.appendChild(opt);
+  });
+  if ([...selectMesHistorico.options].some(o => o.value === current)) {
+    selectMesHistorico.value = current;
+  } else {
+    selectMesHistorico.value = 'todos';
+  }
+}
+
+function totalsForMonth(m){
+  const arr = (m === mesActual) ? (gastos || []) : (JSON.parse(localStorage.getItem(`gastos_${m}`)) || []);
+  let gastosTotal = 0, beneficiosTotal = 0;
+  arr.forEach(g => {
+    if (!g || typeof g.importe !== 'number') return;
+    if (g.tipo === 'gasto') gastosTotal += g.importe; else beneficiosTotal += g.importe;
+  });
+  return { gastos: gastosTotal, beneficios: beneficiosTotal, balance: (beneficiosTotal - gastosTotal) };
+}
+
+function renderGraficoHistorico(){
+  if (!graficoHistoricoCanvas || !selectMesHistorico) return;
+  graficoHistoricoCanvas.style.maxHeight = '400px';
+  const ctx = graficoHistoricoCanvas.getContext('2d');
+  const sel = selectMesHistorico.value || 'todos';
+
+  if (chartHistorico) chartHistorico.destroy();
+
+  const showNoData = () => {
+    ctx.clearRect(0,0,graficoHistoricoCanvas.width,graficoHistoricoCanvas.height);
+    ctx.save();
+    ctx.font = '16px Arial';
+    ctx.fillStyle = '#333';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('No existen datos todavía', graficoHistoricoCanvas.width / 2, graficoHistoricoCanvas.height / 2);
+    ctx.restore();
+    if (balanceHistorico){
+      balanceHistorico.textContent = 'No existen datos todavía';
+      balanceHistorico.className = '';
+    }
+  };
+
+  if (sel === 'todos'){
+    const months = getAvailableMonths();
+    if (months.length === 0){
+      showNoData();
+      return;
+    }
+    const gastosData = [], beneficiosData = [];
+    months.forEach(m => { const t = totalsForMonth(m); gastosData.push(t.gastos); beneficiosData.push(t.beneficios); });
+
+    chartHistorico = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: months,
+        datasets: [
+          { label: 'Gastos', data: gastosData, backgroundColor: '#e74c3c' },
+          { label: 'Beneficios', data: beneficiosData, backgroundColor: '#2ecc71' }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true } },
+
+        // 🎬 Animación “desde abajo” (baseline 0)
+        animation: { duration: 1000, easing: 'easeOutCubic' },
+        animations: {
+          y: {
+            type: 'number',
+            from: context => context.chart.scales.y.getPixelForValue(0),
+            duration: 1000,
+            easing: 'easeOutCubic'
+          }
+        }
+      }
+    });
+
+    const totalBalance = months.reduce((acc,m) => acc + totalsForMonth(m).balance, 0);
+    if (balanceHistorico){
+      balanceHistorico.textContent = `Balance acumulado: ${totalBalance.toFixed(2)} €`;
+      setBalanceColor(balanceHistorico, totalBalance);
+    }
+  } else {
+    const t = totalsForMonth(sel);
+    if ((t.gastos ?? 0) === 0 && (t.beneficios ?? 0) === 0){
+      showNoData();
+      return;
+    }
+
+    chartHistorico = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Gastos','Beneficios'],
+        datasets: [
+          { label: sel, data: [t.gastos, t.beneficios], backgroundColor: ['#e74c3c','#2ecc71'] }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true } },
+
+        // 🎬 Animación “desde abajo” (baseline 0)
+        animation: { duration: 1000, easing: 'easeOutCubic' },
+        animations: {
+          y: {
+            type: 'number',
+            from: context => context.chart.scales.y.getPixelForValue(0),
+            duration: 1000,
+            easing: 'easeOutCubic'
+          }
+        }
+      }
+    });
+
+    if (balanceHistorico){
+      balanceHistorico.textContent = `Balance ${sel}: ${t.balance.toFixed(2)} €`;
+      setBalanceColor(balanceHistorico, t.balance);
+    }
+  }
 }
 
 // -------------------- Menú hamburguesa --------------------
-menuToggle.addEventListener("click", () => menu.classList.toggle("menu-abierto"));
+menuToggle.addEventListener("click", () => {
+  const abierto = menu.classList.toggle("menu-abierto");
+  menuToggle.classList.toggle("abierto", abierto);
+  menuToggle.setAttribute("aria-expanded", abierto ? "true" : "false");
+  document.body.classList.toggle('menu-open', abierto);
+  menuOverlay.classList.toggle('show', abierto);
+});
+
 menu.querySelectorAll("li").forEach(item => {
   item.addEventListener("click", () => {
     const seccionId = item.dataset.section;
+
+    // mostrar sección seleccionada
     secciones.forEach(s => s.classList.add("oculto"));
     document.getElementById(seccionId).classList.remove("oculto");
+
+    // cerrar menú + overlay
     menu.classList.remove("menu-abierto");
+    menuToggle.classList.remove("abierto");
+    menuToggle.setAttribute("aria-expanded","false");
+    document.body.classList.remove('menu-open');
+    menuOverlay.classList.remove('show');
+
+    // 🔁 Re-crear gráficos para que ANIMEN cada vez que entras
+    const mesSel = filtrarMes.value || mesActual;
+
+    // 1) Gráfica de Gastos (pastel)
+    if (seccionId === "seccionGraficoPorcentaje") {
+      if (chartPorcentaje) chartPorcentaje.destroy();
+      requestAnimationFrame(() => {
+        renderGraficoPorcentaje(mesSel);
+      });
+    }
+
+    // 2) Gastos vs Beneficios (barras diarias)
+    if (seccionId === "seccionGraficoDiario") {
+      if (chartDiario) chartDiario.destroy();
+      requestAnimationFrame(() => {
+        renderGraficoDiario(mesSel);
+      });
+    }
+
+    // 3) Histórico de Meses (barras)
+    if (seccionId === "seccionHistorico") {
+      if (chartHistorico) chartHistorico.destroy();
+      requestAnimationFrame(() => {
+        renderGraficoHistorico();
+      });
+    }
   });
 });
 
 // -------------------- Inicial --------------------
+populateSelectHistorico();
+if (selectMesHistorico){
+  selectMesHistorico.addEventListener('change', renderGraficoHistorico);
+}
+setTituloGraficoDiario();
 renderTabla();
