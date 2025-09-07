@@ -1,24 +1,39 @@
-/* -------------------- Estilos base -------------------- */
+/* -------------------- Tipografía y fondo -------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
 body {
-  font-family: 'Segoe UI', sans-serif;
-  background: #f5f5f5;
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
   margin: 0;
   padding: 1rem;
   transition: background 0.3s ease, color 0.3s ease;
+  color: #333;
 }
 
 .container {
   max-width: 600px;
   margin: auto;
-  background: white;
+  background: #ffffff;
   padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
   transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
-h1, h2 {
+h1 {
   text-align: center;
+  font-weight: 700;
+  font-size: 2rem;
+  color: #4caf50;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+h2 {
+  text-align: center;
+  font-weight: 600;
+  color: #2e7d32;
+  margin-bottom: 1rem;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.05);
 }
 
 /* -------------------- Formulario -------------------- */
@@ -34,20 +49,38 @@ form input, form select, form button {
   padding: 0.5rem;
   border-radius: 8px;
   border: 1px solid #ccc;
-  transition: background 0.3s ease, color 0.3s ease, border 0.3s ease;
+  transition: background 0.3s ease, color 0.3s ease, border 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-button {
+/* -------------------- Botones -------------------- */
+button,
+#exportar-importar button,
+#importJSON,
+form button,
+#presupuesto-container button {
   background: #4caf50;
   color: white;
   border: none;
   cursor: pointer;
-  transition: background 0.3s ease, transform 0.3s ease;
+  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-button:hover {
-  background: #45a049;
-  transform: scale(1.05);
+button:hover,
+#exportar-importar button:hover,
+#importJSON:hover,
+form button:hover,
+#presupuesto-container button:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+button:active,
+#exportar-importar button:active,
+#importJSON:active,
+form button:active,
+#presupuesto-container button:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 /* -------------------- Tabla -------------------- */
@@ -55,6 +88,7 @@ table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 1rem;
+  transition: background 0.3s ease;
 }
 
 th, td {
@@ -66,8 +100,9 @@ tr:nth-child(even) {
   background-color: #f9f9f9;
 }
 
+/* Animaciones filas */
 tr.fade-in {
-  animation: fadeIn 0.5s ease;
+  animation: fadeIn 0.5s ease forwards;
 }
 
 tr.fade-out {
@@ -75,13 +110,13 @@ tr.fade-out {
 }
 
 @keyframes fadeIn {
-  from {opacity: 0;}
-  to {opacity: 1;}
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeOut {
-  from {opacity: 1; transform: translateX(0);}
-  to {opacity: 0; transform: translateX(-20px);}
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateX(-20px); }
 }
 
 td button {
@@ -89,9 +124,42 @@ td button {
   color: white;
   border: none;
   padding: 0.3rem 0.7rem;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   margin-right: 0.3rem;
+  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+td button:hover {
+  background: #c0392b;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+td button:active {
+  transform: translateY(0) scale(0.95);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* -------------------- Tabla gastos/beneficios visual -------------------- */
+table tr.gasto {
+  background-color: #fdecea; /* tono rojo suave */
+}
+
+table tr.beneficio {
+  background-color: #eafaf1; /* tono verde suave */
+}
+
+table tr.gasto:hover {
+  background-color: #f9cfc7; /* rojo más intenso al pasar el ratón */
+}
+
+table tr.beneficio:hover {
+  background-color: #c9f0d9; /* verde más intenso al pasar el ratón */
+}
+
+table td.categoria {
+  border-left-width: 6px;
 }
 
 /* -------------------- Presupuesto y alertas -------------------- */
@@ -112,22 +180,14 @@ td button {
   margin-top: 0.5rem;
   font-weight: bold;
   color: red;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  transform: translateY(20px);
+  opacity: 0;
 }
 
-/* Botón junto al presupuesto redondeado y verde */
-#presupuesto-container button {
-  border-radius: 8px;
-  padding: 0.5rem 0.7rem;
-  background: #4caf50;
-  color: white;
-  border: none;
-  cursor: pointer;
-  transition: background 0.3s ease, transform 0.3s ease;
-}
-
-#presupuesto-container button:hover {
-  background: #45a049;
-  transform: scale(1.05);
+#alertaPresupuesto.show {
+  transform: translateY(0);
+  opacity: 1;
 }
 
 /* -------------------- Categorías -------------------- */
@@ -249,10 +309,12 @@ body.dark #darkIcon {
   cursor: pointer;
   color: white;
   font-weight: bold;
+  transition: color 0.3s ease;
 }
 
 #menu li:hover {
   text-decoration: underline;
+  color: #e0f2f1;
 }
 
 /* -------------------- Secciones -------------------- */
@@ -288,7 +350,6 @@ section.oculto {
 }
 
 /* -------------------- Botones filtros y exportación -------------------- */
-/* Botón filtrar categoría (blanco) */
 #filtros input[type="text"] {
   border-radius: 8px;
   border: 1px solid #ccc;
@@ -305,7 +366,6 @@ section.oculto {
   box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
 }
 
-/* Botón filtrar fecha (verde) */
 #filtros input[type="month"],
 #filtros input[type="date"] {
   border-radius: 8px;
@@ -314,16 +374,16 @@ section.oculto {
   background: #4caf50;
   color: white;
   cursor: pointer;
-  transition: background 0.3s ease, transform 0.3s ease;
+  transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.2s ease;
 }
 
 #filtros input[type="month"]:hover,
 #filtros input[type="date"]:hover {
   background: #45a049;
   transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
 
-/* Botones de exportar CSV/JSON e importar archivo */
 #exportar-importar button,
 #importJSON {
   border-radius: 8px;
@@ -332,15 +392,113 @@ section.oculto {
   background: #4caf50;
   color: white;
   cursor: pointer;
-  transition: background 0.3s ease, transform 0.3s ease;
+  transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.2s ease;
 }
 
 #exportar-importar button:hover,
 #importJSON:hover {
   background: #45a049;
   transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
 
 #importJSON {
   padding: 0.3rem;
+}
+
+/* -------------------- Banner actualización / alertas -------------------- */
+.banner-actualizacion {
+  position: fixed;
+  bottom: -60px;
+  left: 1rem;
+  right: 1rem;
+  padding: 0.6rem;
+  background: #4caf50;
+  color: white;
+  text-align: center;
+  border-radius: 8px;
+  z-index: 9999;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  transition: bottom 0.5s ease, opacity 0.5s ease;
+  opacity: 0;
+}
+
+.banner-actualizacion.show {
+  bottom: 1rem;
+  opacity: 1;
+}
+
+.banner-actualizacion button {
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  border: none;
+  background: #388e3c;
+  color: white;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.banner-actualizacion button:hover {
+  background: #2e7d32;
+  transform: scale(1.05);
+}
+
+/* -------------------- Dark Mode Tabla y Contrastes -------------------- */
+body.dark table {
+  background: #2c2c2c;
+  color: #eee;
+}
+
+body.dark tr:nth-child(even) {
+  background: #333;
+}
+
+body.dark table tr.gasto {
+  background-color: #4b1c1c; /* rojo oscuro para modo oscuro */
+}
+
+body.dark table tr.gasto:hover {
+  background-color: #601e1e; /* rojo más intenso al hover */
+}
+
+body.dark table tr.beneficio {
+  background-color: #1c4b2c; /* verde oscuro para modo oscuro */
+}
+
+body.dark table tr.beneficio:hover {
+  background-color: #1e601e; /* verde más intenso al hover */
+}
+
+/* Colores de importe adaptados a modo oscuro */
+body.dark tr.gasto td:nth-child(3) {
+  color: #f28b82; /* rojo más claro para resaltar gasto */
+}
+
+body.dark tr.beneficio td:nth-child(3) {
+  color: #81c995; /* verde más claro para resaltar beneficio */
+}
+
+/* Color de categoría con borde visible */
+body.dark td.categoria {
+  border-left-width: 6px;
+  border-left-color: #888; /* borde visible en dark mode */
+  color: #eee;
+}
+
+/* -------------------- Dark Mode Botones Tabla (colores elegantes) -------------------- */
+body.dark td button {
+  background: #607d8b; /* gris azulado */
+  color: #fff;
+}
+
+body.dark td button:hover {
+  background: #78909c; /* gris azulado más claro */
+}
+
+body.dark td button:active {
+  background: #546e7a; /* gris azulado más oscuro */
 }
