@@ -1,25 +1,6 @@
 // -------------------- Configuración Inicial --------------------
 const body = document.body;
 
-// ------------ Estilos extra (toasts + highlight de fila) ------------
-(function injectEnhancementStyles() {
-  const css = `
-  .toast-container{position:fixed;bottom:1rem;right:1rem;display:flex;flex-direction:column;gap:.5rem;z-index:10000}
-  .toast{min-width:240px;max-width:340px;padding:.75rem 1rem;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:flex;align-items:center;gap:.75rem;opacity:0;transform:translateY(8px);transition:opacity .25s ease,transform .25s ease}
-  .toast.show{opacity:1;transform:translateY(0)}
-  .toast-info{background:#4caf50;color:#fff}
-  .toast-success{background:#2ecc71;color:#fff}
-  .toast-error{background:#e74c3c;color:#fff}
-  .toast__action{margin-left:auto;background:rgba(255,255,255,.2);border:none;border-radius:8px;padding:.35rem .6rem;color:inherit;cursor:pointer}
-  .toast__action:hover{background:rgba(255,255,255,.3)}
-  .flash-row{animation:flashRow 1.6s ease}
-  @keyframes flashRow{0%{box-shadow:inset 0 0 0 3px rgba(76,175,80,.9)}60%{box-shadow:inset 0 0 0 3px rgba(76,175,80,0)}100%{box-shadow:none}}
-  `;
-  const style = document.createElement('style');
-  style.textContent = css;
-  document.head.appendChild(style);
-})();
-
 // -------------------- Toasts --------------------
 let __toastContainer;
 function ensureToastContainer(){
@@ -70,7 +51,7 @@ function updateNetworkStatus() {
   if (navigator.onLine) {
     banner.classList.remove('show');
   } else {
-    banner.textContent = 'Sin conexión: algunos recursos se han actualizado';
+    banner.textContent = 'Sin conexión: algunos recursos pueden no estar disponibles';
     banner.style.background = '#ffcc00';
     banner.classList.add('show');
   }
@@ -135,6 +116,7 @@ const menuToggle = document.getElementById("menuToggle");
 const menu = document.getElementById("menu");
 const secciones = document.querySelectorAll("main section");
 
+// Gráficos/histórico
 const selectMesHistorico = document.getElementById("selectMesHistorico");
 const balanceHistorico = document.getElementById("balanceHistorico");
 const graficoHistoricoCanvas = document.getElementById("graficoHistorico");
@@ -144,9 +126,6 @@ const tituloGraficoDiario = document.getElementById("tituloGraficoDiario");
 const menuOverlay = document.createElement('div');
 menuOverlay.id = 'menuOverlay';
 document.body.appendChild(menuOverlay);
-
-// -------------------- (Revertido) Nada de forzar estilo del filtro por JS --------------------
-// (Se eliminó el bloque HOTFIX para dejar el estilo del input de categoría como estaba en el CSS)
 
 // -------------------- Confirm propio (Promise<boolean>) --------------------
 function appConfirm({ title = "Confirmar", message = "", confirmText = "Aceptar", cancelText = "Cancelar", variant = "primary" } = {}) {
@@ -205,11 +184,6 @@ function appConfirm({ title = "Confirmar", message = "", confirmText = "Aceptar"
   });
 }
 
-// Cerrar al pulsar fuera (en el overlay)
-menuOverlay.addEventListener('click', () => {
-  closeMenu();
-});
-
 // -------------------- Datos persistentes --------------------
 let gastos = JSON.parse(localStorage.getItem("gastos")) || [];
 let presupuesto = parseFloat(localStorage.getItem("presupuesto")) || 0;
@@ -222,6 +196,16 @@ if (localStorage.getItem("darkMode") === "true") {
 } else {
   darkIcon.textContent = "🌙";
 }
+
+// Header shadow al hacer scroll (si existe)
+const headerEl = document.querySelector('header');
+const headerScrollCheck = () => {
+  if (!headerEl) return;
+  if (window.scrollY > 0) headerEl.classList.add('is-scrolled');
+  else headerEl.classList.remove('is-scrolled');
+};
+window.addEventListener('scroll', headerScrollCheck);
+headerScrollCheck();
 
 // --- Prefijar valores (móvil)
 function fmtDate(d){
@@ -300,6 +284,11 @@ function capitalizeFirst(str = "") {
   if (!str) return "";
   return str.charAt(0).toLocaleUpperCase('es-ES') + str.slice(1);
 }
+
+// Fallback para CSS.escape
+const cssEscape = (s) => (window.CSS && typeof CSS.escape === 'function')
+  ? CSS.escape(s)
+  : String(s).replace(/[^a-zA-Z0-9_\-]/g, '\\$&');
 
 // Paleta/categorías
 if (!window.__palette__) {
@@ -482,6 +471,9 @@ function renderGraficoDiario(mesFiltrado) {
 
   if (chartDiario) chartDiario.destroy();
 
+  const isDark = body.classList.contains('dark');
+  const tickColor = isDark ? '#fff' : '#000';
+
   chartDiario = new Chart(ctx, {
     type: "bar",
     data: {
@@ -491,7 +483,14 @@ function renderGraficoDiario(mesFiltrado) {
         { label: "Beneficios", data: datosBeneficios, backgroundColor: "#2ecc71" }
       ]
     },
-    options: { ...baseBarOpts, plugins: { legend: { position: "top" } } }
+    options: {
+      ...baseBarOpts,
+      plugins: { legend: { position: "top", labels: { color: tickColor } } },
+      scales: {
+        x: { ticks: { color: tickColor } },
+        y: { ticks: { color: tickColor } }
+      }
+    }
   });
 }
 
@@ -584,6 +583,9 @@ function renderGraficoHistorico() {
     setBalanceColor(balanceHistorico, val);
   };
 
+  const isDark = body.classList.contains('dark');
+  const tickColor = isDark ? '#fff' : '#000';
+
   if (sel === "todos") {
     const months = getAvailableMonths();
     if (months.length === 0) { showNoData(); return; }
@@ -604,7 +606,14 @@ function renderGraficoHistorico() {
           { label: "Beneficios", data: beneficiosData, backgroundColor: "#2ecc71" }
         ]
       },
-      options: baseBarOpts
+      options: {
+        ...baseBarOpts,
+        plugins: { legend: { labels: { color: tickColor } } },
+        scales: {
+          x: { ticks: { color: tickColor } },
+          y: { ticks: { color: tickColor } }
+        }
+      }
     });
 
     const totalBalance = months.reduce((acc, m) => acc + totalsForMonth(m).balance, 0);
@@ -621,7 +630,14 @@ function renderGraficoHistorico() {
           { label: sel, data: [t.gastos, t.beneficios], backgroundColor: ["#e74c3c", "#2ecc71"] }
         ]
       },
-      options: baseBarOpts
+      options: {
+        ...baseBarOpts,
+        plugins: { legend: { labels: { color: tickColor } } },
+        scales: {
+          x: { ticks: { color: tickColor } },
+          y: { ticks: { color: tickColor } }
+        }
+      }
     });
 
     showBalance(`Balance ${sel}: ${t.balance.toFixed(2)} €`, t.balance);
@@ -655,7 +671,6 @@ function renderTabla() {
     else fila.classList.add("beneficio");
 
     const tipoLabel = gasto.tipo === "gasto" ? "Gasto" : "Beneficio";
-    // MOSTRAR categoría como estaba (respeta tu lógica previa con capitalización)
     const categoriaLabel = capitalizeFirst((gasto.categoria || "").trim());
 
     const keyCat = categoriaLabel || "Sin categoría";
@@ -706,7 +721,7 @@ function renderTabla() {
 // --- Scroll helper: desplaza hasta la fila por ID y la resalta ---
 function scrollToRowById(id){
   if (!id) return;
-  const row = tabla.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
+  const row = tabla.querySelector(`tr[data-id="${cssEscape(id)}"]`);
   if (!row) return;
   row.scrollIntoView({ behavior: 'smooth', block: 'center' });
   row.classList.add('flash-row');
@@ -727,18 +742,31 @@ async function eliminarGastoPorId(id) {
   });
   if (!ok) return;
 
-  const row = tabla.querySelector(`button.eliminar[data-id="${id}"]`)?.closest('tr');
-  if (row) {
-    row.classList.add('fade-out');
-    row.addEventListener('animationend', () => {
-      gastos.splice(idx, 1);
-      renderTabla();
-      showToast('Movimiento eliminado', { type: 'success', duration: 2200 });
-    }, { once: true });
-  } else {
+  const eliminado = gastos[idx];
+
+  const ejecutarBorrado = () => {
     gastos.splice(idx, 1);
     renderTabla();
-    showToast('Movimiento eliminado', { type: 'success', duration: 2200 });
+
+    showToast('Movimiento eliminado', {
+      type: 'success',
+      duration: 3500,
+      actionText: 'Deshacer',
+      onAction: () => {
+        gastos.splice(Math.min(idx, gastos.length), 0, eliminado);
+        renderTabla();
+        scrollToRowById(eliminado.id);
+        showToast('Eliminación deshecha', { type: 'info', duration: 1600 });
+      }
+    });
+  };
+
+  const row = tabla.querySelector(`button.eliminar[data-id="${cssEscape(id)}"]`)?.closest('tr');
+  if (row) {
+    row.classList.add('fade-out');
+    row.addEventListener('animationend', ejecutarBorrado, { once: true });
+  } else {
+    ejecutarBorrado();
   }
 }
 
@@ -767,7 +795,7 @@ async function editarGastoPorId(id) {
   gastos.splice(idx, 1);
   renderTabla();
 
-  form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  (document.querySelector('main') || document.body).scrollIntoView({ behavior: 'smooth', block: 'start' });
   showToast('Datos cargados para editar', { type: 'info', duration: 2200 });
 }
 
@@ -884,6 +912,7 @@ exportJSONBtn.addEventListener("click", () => {
   a.href = URL.createObjectURL(blob);
   a.download = "gastos.json";
   a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   showToast("JSON exportado", { type: "info", duration: 1600 });
 });
 
@@ -965,6 +994,7 @@ toggleDarkBtn.addEventListener("click", () => {
   localStorage.setItem("darkMode", body.classList.contains("dark"));
   darkIcon.textContent = body.classList.contains("dark") ? "☀️" : "🌙";
 
+  // Pie
   if (chartPorcentaje) {
     const isDark = body.classList.contains('dark');
     const borde  = isDark ? '#fff' : '#000';
@@ -979,6 +1009,24 @@ toggleDarkBtn.addEventListener("click", () => {
 
     chartPorcentaje.update();
   }
+
+  // Barras diario
+  if (chartDiario) {
+    const color = body.classList.contains('dark') ? '#fff' : '#000';
+    chartDiario.options.plugins.legend.labels.color = color;
+    if (chartDiario.options.scales?.x?.ticks) chartDiario.options.scales.x.ticks.color = color;
+    if (chartDiario.options.scales?.y?.ticks) chartDiario.options.scales.y.ticks.color = color;
+    chartDiario.update();
+  }
+
+  // Histórico
+  if (chartHistorico) {
+    const color = body.classList.contains('dark') ? '#fff' : '#000';
+    chartHistorico.options.plugins.legend.labels.color = color;
+    if (chartHistorico.options.scales?.x?.ticks) chartHistorico.options.scales.x.ticks.color = color;
+    if (chartHistorico.options.scales?.y?.ticks) chartHistorico.options.scales.y.ticks.color = color;
+    chartHistorico.update();
+  }
 });
 
 // -------------------- Menú hamburguesa (sin salto al cerrar) --------------------
@@ -988,7 +1036,6 @@ function positionMenuPanel() {
   if (!isMenuOpen) return;
   const rect = menuToggle.getBoundingClientRect();
   const margin = 10; // separación visual bajo el botón
-  // Fijamos un top global que usan ambos estados del menú
   document.documentElement.style.setProperty(
     '--menuTop',
     `${Math.round(window.scrollY + rect.bottom + margin)}px`
@@ -1014,7 +1061,6 @@ function closeMenu() {
   if (!isMenuOpen) return;
   isMenuOpen = false;
 
-  // Limpia la variable de top SOLO cuando termine la transición de 'right'
   const clearTopVar = () => document.documentElement.style.removeProperty('--menuTop');
   const onEnd = (e) => {
     if (e.propertyName !== 'right') return;
@@ -1022,7 +1068,6 @@ function closeMenu() {
     if (!isMenuOpen) clearTopVar();
   };
   menu.addEventListener('transitionend', onEnd);
-  // Fallback por si el navegador no dispara transitionend
   setTimeout(() => {
     menu.removeEventListener('transitionend', onEnd);
     if (!isMenuOpen) clearTopVar();
@@ -1063,7 +1108,8 @@ menu.querySelectorAll("li").forEach(item => {
 
     closeMenu();
 
-    document.querySelector('main').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    (document.querySelector('main') || document.body)
+      .scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     const mesSel = filtrarMes.value || mesActual;
 

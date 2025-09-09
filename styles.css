@@ -1174,3 +1174,40 @@ td.categoria{
   padding-left: 6px;             /* deja hueco para el borde */
   border-left: 6px solid currentColor; /* o 'transparent' si ya pintas inline el color */
 }
+
+/* =========================
+   EXTRAS AÑADIDOS (no rompen nada)
+   ========================= */
+
+/* Toasts en contenedor (convive con la versión minimalista centrada) */
+.toast-container{
+  position:fixed; bottom:1rem; right:1rem;
+  display:flex; flex-direction:column; gap:.5rem; z-index:10000;
+}
+.toast-container .toast{
+  position: static; left: auto; bottom: auto;
+  transform: none;
+  opacity: 1;
+  min-width:240px; max-width:340px;
+  padding:.75rem 1rem;
+  border-radius:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.18);
+  display:flex; align-items:center; gap:.75rem;
+}
+.toast-container .toast.show{ transform:none; }
+
+.toast-info{background:#4caf50;color:#fff}
+.toast-success{background:#2ecc71;color:#fff}
+.toast-error{background:#e74c3c;color:#fff}
+.toast__action{
+  margin-left:auto; background:rgba(255,255,255,.2);
+  border:none; border-radius:8px; padding:.35rem .6rem;
+  color:inherit; cursor:pointer;
+}
+.toast__action:hover{ background:rgba(255,255,255,.3) }
+
+/* Accesibilidad extra por si focus-visible no aplica */
+#menu li:focus{ outline: 2px solid rgba(255,255,255,.6); outline-offset: 2px; }
+
+/* Gráficos: límites de altura consistentes */
+#graficoGastos, #graficoDiario, #graficoHistorico{ max-height: 400px; }
