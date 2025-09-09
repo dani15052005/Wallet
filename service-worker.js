@@ -1,5 +1,5 @@
 // service-worker.js
-const STATIC_CACHE = "gastos-static-v9";
+const STATIC_CACHE = "gastos-static-v22";
 const DYNAMIC_CACHE = "gastos-dynamic-v1";
 const MAX_DYNAMIC_ITEMS = 50;
 
@@ -9,6 +9,7 @@ const STATIC_FILES = [
   "./offline.html",
   "./styles.css",
   "./script.js",
+  "./chart.umd.min.js",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png",
@@ -16,8 +17,6 @@ const STATIC_FILES = [
 ];
 
 const PLACEHOLDER_IMAGE = "./icon-192.png";
-
-const isSameOrigin = (url) => new URL(url, self.location.href).origin === self.location.origin;
 
 async function trimCache(cacheName, maxItems) {
   try {
@@ -87,27 +86,63 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
 
+    // Fallback de favicon: sirve icon-192.png cuando piden /favicon.ico
+  try {
+    const url = new URL(req.url);
+    if (url.origin === self.location.origin && url.pathname === "/favicon.ico") {
+      event.respondWith((async () => {
+        const cache = await caches.open(STATIC_CACHE);
+        const cached = await cache.match("./icon-192.png");
+        if (cached) return cached;
+        // Si no está cacheado aún, lo traemos y guardamos
+        const resp = await fetch("./icon-192.png");
+        await cache.put("./icon-192.png", resp.clone());
+        return resp;
+      })());
+      return;
+    }
+  } catch {}
+
   const isSameOrigin = (u) => new URL(u, self.location.href).origin === self.location.origin;
   const sameOrigin = isSameOrigin(req.url);
   const acceptsHTML = (req.headers.get("accept") || "").includes("text/html");
   const isNavigate = req.mode === "navigate" || acceptsHTML;
 
-  // 1) Navegación (HTML): network-first con fallback offline
-  if (isNavigate) {
-    event.respondWith((async () => {
+  // 1) Navegación (HTML): cache-first del app shell con actualización en segundo plano
+if (isNavigate) {
+  event.respondWith((async () => {
+    const cache = await caches.open(STATIC_CACHE);
+
+    // Intenta servir el app shell desde caché inmediatamente
+    const cachedShell = await cache.match("./index.html");
+
+    // En paralelo, intenta ir a red para actualizar el shell en caché
+    const updatePromise = (async () => {
       try {
         const preloaded = await event.preloadResponse;
         const network = preloaded || await fetch(req);
-        const cache = await caches.open(STATIC_CACHE);
-        await cache.put(req, network.clone());  // guarda una sola vez
+        // Guarda una copia "canónica" del shell
+        await cache.put("./index.html", network.clone());
         return network;
-      } catch {
-        const offline = await caches.match("./offline.html");
-        return offline || new Response("Offline", { status: 503, statusText: "Servicio no disponible" });
+      } catch (e) {
+        return null;
       }
-    })());
-    return;
-  }
+    })();
+
+    if (cachedShell) {
+      // Devolvemos de caché para que funcione offline inmediatamente
+      return cachedShell;
+    }
+
+    // Si no hay shell en caché (primera carga), prueba red y si falla, offline.html
+    const net = await updatePromise;
+    if (net) return net;
+
+    const offline = await caches.match("./offline.html");
+    return offline || new Response("Offline", { status: 503, statusText: "Servicio no disponible" });
+  })());
+  return;
+}
 
   // 2) Cross-origin (CDN, etc.): no cachear (evita respuestas opacas problemáticas)
   if (!sameOrigin) {

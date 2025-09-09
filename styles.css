@@ -147,20 +147,29 @@ td.categoria {
 }
 
 #alertaPresupuesto {
-  margin-top: 0.5rem;
+  margin: 0.75rem auto 1rem;   /* ↑ espacio arriba | ↓ espacio con export */
   font-weight: bold;
   color: red;
+  text-align: center;          /* ← centrado */
   transition: transform 0.3s ease, opacity 0.3s ease;
-  transform: translateY(20px);
+  transform: translateY(12px);
   opacity: 0;
 }
-#alertaPresupuesto.show { transform: translateY(0); opacity: 1; }
+#alertaPresupuesto.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+#presupuesto-container{
+  display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; flex-wrap: wrap;
+}
+#presupuesto-container label{ line-height: 1; }
 
 /* Campo presupuesto: tamaño final acordado */
-#presupuesto {
+#presupuesto{
   height: 34px;
-  padding: 0.35rem 0.55rem;
-  font-size: 0.9rem;
+  padding: .35rem .55rem;
+  font-size: .9rem;
   border-radius: 8px;
   box-sizing: border-box;
 }
@@ -214,27 +223,43 @@ body.dark td.categoria {
 #darkIcon { display: inline-block; transition: transform 0.5s ease, opacity 0.3s ease; }
 body.dark #darkIcon { transform: rotate(360deg); }
 
-/* -------------------- Menú hamburguesa -------------------- */
-#menuToggle {
+/* -------------------- Menú hamburguesa (móvil OK + animación a X) -------------------- */
+#menuToggle{
   position: fixed;
   top: 1rem; right: 1rem;
-  width: 40px; height: 40px;
+  width: 44px; height: 44px;
   background: #4caf50;
-  border-radius: 8px;
+  border-radius: 10px;
+  border: none;
+  -webkit-appearance: none; appearance: none;
   cursor: pointer;
-  display: flex; flex-direction: column; justify-content: space-around;
-  padding: 5px;
-  z-index: 1000;
-  transition: transform 0.3s ease;
+  z-index: 1002;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
 }
-#menuToggle div { height: 4px; background: white; border-radius: 2px; transition: all 0.3s ease; }
+#menuToggle:active{ transform: scale(.98); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
 
-/* Estado abierto del botón hamburguesa */
-#menuToggle.abierto div:nth-child(1) { transform: rotate(45deg) translate(7px, 7px); }
-#menuToggle.abierto div:nth-child(2) { opacity: 0; }
-#menuToggle.abierto div:nth-child(3) { transform: rotate(-45deg) translate(7px, -7px); }
+/* Las 3 barras */
+#menuToggle .bar{
+  position: absolute;
+  left: 8px; right: 8px;
+  height: 3px;
+  background: #fff;
+  border-radius: 2px;
+  transform-origin: center;
+  transition: transform .25s ease, opacity .2s ease, background .2s ease;
+}
+#menuToggle .bar:nth-child(1){ top: 12px; }
+#menuToggle .bar:nth-child(2){ top: 20px; }
+#menuToggle .bar:nth-child(3){ top: 28px; }
 
-#menu {
+/* Estado abierto = “X” */
+#menuToggle.abierto .bar:nth-child(1){ transform: translateY(8px) rotate(45deg); }
+#menuToggle.abierto .bar:nth-child(2){ opacity: 0; }
+#menuToggle.abierto .bar:nth-child(3){ transform: translateY(-8px) rotate(-45deg); }
+
+/* Panel del menú (ya lo tienes, manténlo) */
+#menu{
   position: fixed;
   top: 60px; right: -250px;
   width: 200px;
@@ -245,20 +270,68 @@ body.dark #darkIcon { transform: rotate(360deg); }
   transition: right 0.3s ease;
   z-index: 999;
 }
-#menu.menu-abierto { right: 1rem; }
+#menu.menu-abierto{ right: 1rem; }
 
-#menu li {
+/* --------- Ítems del menú: aspecto “clicable” + micro-animaciones --------- */
+#menu ul{ margin:0; padding:0; }
+
+#menu li{
   list-style: none;
-  margin-bottom: 1rem;
+  margin: .4rem 0;
+  padding: .55rem .75rem;
+  border-radius: 10px;              /* esquinas suaves */
+  font-weight: 600;
+  color: #fff;
   cursor: pointer;
-  color: white;
-  font-weight: bold;
-  transition: color 0.3s ease;
+  display: flex; align-items: center; gap: .5rem;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform .15s ease,
+    background .2s ease,
+    box-shadow .2s ease,
+    color .2s ease;
 }
-#menu li:hover { text-decoration: underline; color: #e0f2f1; }
 
-/* Overlay + desenfoque del contenido cuando el menú está abierto */
-#menuOverlay {
+/* Pequeña “flecha” para indicar que es accionable */
+#menu li::after{
+  content: "›";
+  margin-left: auto;
+  opacity: .85;
+  transition: transform .2s ease, opacity .2s ease;
+}
+
+/* Hover/focus: fondo aclarado, leve sombra, y flecha se desplaza */
+#menu li:hover,
+#menu li:focus-visible{
+  background: rgba(255,255,255,.14);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.2);
+  outline: none;
+}
+
+#menu li:hover::after,
+#menu li:focus-visible::after{
+  transform: translateX(3px);
+  opacity: 1;
+}
+
+/* Active: “click” táctil/ratón */
+#menu li:active{ transform: scale(.98); }
+
+/* Entrada escalonada de los ítems al abrir el menú */
+@keyframes menuItemIn{
+  from { opacity: 0; transform: translateX(8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+#menu.menu-abierto li{ opacity: 0; animation: menuItemIn .25s ease forwards; }
+#menu.menu-abierto li:nth-child(1){ animation-delay: .05s; }
+#menu.menu-abierto li:nth-child(2){ animation-delay: .10s; }
+#menu.menu-abierto li:nth-child(3){ animation-delay: .15s; }
+#menu.menu-abierto li:nth-child(4){ animation-delay: .20s; }
+#menu.menu-abierto li:nth-child(5){ animation-delay: .25s; }
+
+/* Overlay */
+#menuOverlay{
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.25);
   backdrop-filter: blur(4px);
@@ -267,14 +340,10 @@ body.dark #darkIcon { transform: rotate(360deg); }
   transition: opacity 0.3s ease;
   z-index: 998;
 }
-#menuOverlay.show { opacity: 1; pointer-events: auto; }
-body.menu-open .container {
-  filter: blur(4px);
-  transition: filter .25s ease;
-}
-#menuToggle { z-index: 1002; }
+#menuOverlay.show{ opacity: 1; pointer-events: auto; }
 
-
+/* Contenido borroso con menú */
+body.menu-open .container{ filter: blur(4px); transition: filter .25s ease; }
 
 /* -------------------- Secciones -------------------- */
 section.oculto { display: none; }
@@ -299,6 +368,9 @@ section.oculto { display: none; }
     box-shadow: 0 1px 4px rgba(0,0,0,0.35);
   }
 
+  /* Quita el hueco final bajo la última tarjeta en móvil */
+  tbody tr:last-child { margin-bottom: 0; }
+
   td {
     display: grid;
     grid-template-columns: 9.5ch 1fr;
@@ -306,7 +378,6 @@ section.oculto { display: none; }
     gap: 0.5rem;
     padding: 0.35rem 0;
   }
-
   td::before {
     content: attr(data-label);
     font-weight: 600;
@@ -314,7 +385,6 @@ section.oculto { display: none; }
   }
   body.dark td::before { color: #ddd; }
 
-  /* Última celda (Acciones) con botones a la derecha */
   td:last-child {
     display: flex;
     justify-content: flex-end;
@@ -322,10 +392,8 @@ section.oculto { display: none; }
     padding-top: 0.6rem;
   }
 
-  /* Mantener el borde de color en la categoría */
   td.categoria { border-left-width: 6px !important; padding-left: 8px; }
 
-  /* Forzar texto claro en dark */
   body.dark table, body.dark tbody, body.dark tr, body.dark td { color: #eee !important; }
 }
 
@@ -336,19 +404,69 @@ section.oculto { display: none; }
 .balance-rojo { color: #e74c3c; }
 
 /* -------------------- Botones filtros y exportación -------------------- */
-#filtros input[type="text"] {
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  padding: 0.5rem 0.7rem;
-  background: #ffffff;
-  color: #333;
-  cursor: text;
-  transition: border 0.3s ease, box-shadow 0.3s ease;
+/* Unificar tipografía en inputs de fecha/mes y sus números */
+/* Unificar tipografía y calendario */
+input[type="date"], input[type="month"]{
+  font-family: 'Inter', sans-serif;
+  font-size: .95rem;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  letter-spacing: 0;
 }
-#filtros input[type="text"]:focus {
-  outline: none;
-  border-color: #4caf50;
-  box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+
+/* En la barra de filtros (fondo verde), icono visible */
+#filtros input[type="date"],
+#filtros input[type="month"]{
+  padding-right: 2rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: #4caf50;
+  color: white;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.2s ease;
+}
+#filtros input[type="month"]:hover,
+#filtros input[type="date"]:hover {
+  background: #45a049;
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+#filtros input[type="date"]::-webkit-calendar-picker-indicator,
+#filtros input[type="month"]::-webkit-calendar-picker-indicator{
+  filter: invert(1);
+  opacity: .9;
+}
+
+/* Dark: mismo gris para todos los filtros */
+body.dark #filtros input[type="month"],
+body.dark #filtros input[type="date"]{
+  background: #2c2c2c !important;
+  color: #fff !important;
+  border: 1px solid #444 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.5);
+  transform: none;
+}
+body.dark #filtros input[type="month"]:hover,
+body.dark #filtros input[type="date"]:hover{
+  background: #333 !important;
+}
+body.dark #filtros input[type="month"]::-webkit-calendar-picker-indicator,
+body.dark #filtros input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Filtro de texto en dark: una sola versión */
+body.dark #filtros input[type="text"]{
+  background: #2c2c2c !important;
+  color: #fff !important;
+  border: 1px solid #444 !important;
+  box-shadow: none;
+}
+body.dark #filtros input[type="text"]::placeholder{ color: #bbb; }
+body.dark #filtros input[type="text"]:hover{ background: #333 !important; }
+body.dark #filtros input[type="text"]:focus{
+  border-color: #4caf50 !important;
+  box-shadow: 0 0 5px rgba(76,175,80,.35);
 }
 
 #filtros input[type="month"],
@@ -368,12 +486,9 @@ section.oculto { display: none; }
   box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
 
-/* Export / Import barra: alto unificado (34px) */
+/* -------------------- Botones de Exportación / Importación -------------------- */
 #exportar-importar {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  align-items: center;
+  display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;
 }
 #exportar-importar button,
 #importJSON {
@@ -388,20 +503,37 @@ section.oculto { display: none; }
   font-size: 0.9rem;
 }
 
-/* Input file: sub-botón igualado en altura */
-#importJSON { overflow: hidden; white-space: nowrap; max-width: 260px; }
+/* Input file perfectamente alineado */
+#importJSON {
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  padding: 0;                 /* botón interno aporta el padding */
+  margin-left: 0 !important;  /* estado final que ganaba en la cascada */
+}
 #importJSON::file-selector-button,
 #importJSON::-webkit-file-upload-button {
   height: 100%;
-  padding: 0 0.75rem;
   margin: 0;
+  padding: 0 0.75rem;
   border: none;
-  border-radius: 8px;
-  line-height: 32px;
+  border-radius: 8px 0 0 8px;
+  line-height: 34px;
   font-size: 0.9rem;
+  margin-right: 0.5rem;
 }
 
-/* Dark mode: negro/blanco coherente para export/import y filtros */
+/* Light mode: sub-botón verde */
+body:not(.dark) #importJSON::file-selector-button,
+body:not(.dark) #importJSON::-webkit-file-upload-button {
+  background: #4caf50; color: #fff; border: none;
+}
+body:not(.dark) #importJSON::file-selector-button:hover,
+body:not(.dark) #importJSON::-webkit-file-upload-button:hover {
+  background: #388e3c;
+}
+
+/* Dark mode coherente */
 body.dark #exportar-importar button,
 body.dark #importJSON {
   background: #111 !important;
@@ -418,12 +550,13 @@ body.dark #importJSON:hover {
 }
 body.dark #importJSON::file-selector-button,
 body.dark #importJSON::-webkit-file-upload-button {
-  background: #111; color: #fff; border: 1px solid #444; border-radius: 8px;
+  background: #111; color: #fff; border: 1px solid #444; border-radius: 8px 0 0 8px;
 }
 body.dark #importJSON::file-selector-button:hover,
 body.dark #importJSON::-webkit-file-upload-button:hover {
   background: #e74c3c; color: #fff; border-color: #e74c3c;
 }
+
 body.dark #filtros input[type="month"],
 body.dark #filtros input[type="date"] {
   background: #111 !important;
@@ -701,4 +834,161 @@ body.dark #filtros input[type="text"]:hover{
 body.dark #filtros input[type="text"]:focus{
   border-color: #4caf50 !important;
   box-shadow: 0 0 5px rgba(76,175,80,.35);
+}
+
+/* Aviso de presupuesto: pastilla centrada */
+#alertaPresupuesto {
+  display: block;                 /* ← elemento de bloque para poder centrar con auto */
+  width: fit-content;             /* ← ancho justo del contenido */
+  margin: 0.9rem auto 1.1rem;     /* ← centrado horizontal real */
+  padding: 0.55rem 0.9rem;
+  border-radius: 9999px;
+  background: rgba(231, 76, 60, 0.10);
+  border: 1px solid rgba(231, 76, 60, 0.35);
+  color: #c0392b;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 6px 16px rgba(231, 76, 60, 0.15);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  transform: translateY(12px);
+  opacity: 0;
+}
+
+#alertaPresupuesto.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* Modo oscuro */
+body.dark #alertaPresupuesto {
+  background: rgba(231, 76, 60, 0.20);
+  border-color: rgba(231, 76, 60, 0.45);
+  color: #ffd4cf;
+  box-shadow: 0 6px 16px rgba(231, 76, 60, 0.25);
+}
+
+/* (Opcional) Fallback si algún navegador no soporta fit-content */
+@supports not (width: fit-content) {
+  #alertaPresupuesto { display: table; }  /* table + margin:auto también centra */
+}
+
+/* ===== Modal de confirmación de la app ===== */
+.app-confirm { position: fixed; inset: 0; display: none; z-index: 10000; }
+.app-confirm.show { display: block; }
+.app-confirm__backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.35);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.app-confirm__dialog {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%,-50%);
+  width: min(520px, calc(100% - 2rem));
+  background: #fff; color: #222;
+  border-radius: 14px;
+  box-shadow: 0 18px 56px rgba(0,0,0,.25);
+  padding: 1rem 1rem 0.75rem;
+}
+.app-confirm__dialog h3 {
+  margin: 0 0 .35rem 0; font-size: 1.1rem; font-weight: 700; color: #2e7d32;
+}
+.app-confirm__dialog p { margin: 0 0 .9rem 0; line-height: 1.35; }
+.app-confirm__actions { display: flex; justify-content: flex-end; gap: .5rem; padding: .5rem 0 .75rem; }
+
+.btn-modal {
+  border-radius: 10px; padding: .55rem 1rem; font-weight: 600;
+  border: 1px solid transparent; cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease, background .2s ease, border-color .2s ease;
+}
+.btn-modal:active { transform: translateY(0); }
+.btn-secondary { background: #e9ecef; color: #222; }
+.btn-secondary:hover { background: #dde2e6; }
+.btn-primary { background: #4caf50; color: #fff; }
+.btn-primary:hover { background: #43a047; }
+.btn-danger { background: #e74c3c; color: #fff; }
+.btn-danger:hover { background: #d84332; }
+
+/* Dark mode */
+body.dark .app-confirm__dialog { background: #1e1e1e; color: #eee; box-shadow: 0 18px 56px rgba(0,0,0,.6); }
+body.dark .app-confirm__dialog h3 { color: #81c995; }
+body.dark .btn-secondary { background: #2c2c2c; color: #eee; border: 1px solid #444; }
+body.dark .btn-secondary:hover { background: #333; }
+
+/* Evita scroll horizontal y asegura ajuste al contenedor */
+canvas { display:block; width:100%; max-width:100%; }
+
+/* Selector "Histórico de Meses" — limpio, sin puntos y con tipografía unificada */
+#selectMesHistorico{
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  font-family: inherit;                 /* misma fuente que el resto */
+  font-size: .95rem;
+  line-height: 1.2;
+
+  border-radius: 10px;
+  padding: .45rem 2.2rem .45rem .65rem; /* espacio para la flecha */
+  border: 1px solid #ccc;
+  background-color: #fff;
+  color: #333;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+
+  /* Flecha SVG nítida y SIN repetición */
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path fill="%23333" d="M7 10l5 5 5-5"/></svg>');
+  background-repeat: no-repeat;
+  background-size: 14px 14px;
+  background-position: calc(100% - .65rem) center;  /* anclada al borde derecho */
+  background-origin: padding-box;                    /* mide desde el padding */
+
+  /* Evita “puntos”/artefactos y recortes raros */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .1s ease;
+}
+#selectMesHistorico:hover{ border-color:#4caf50; }
+#selectMesHistorico:focus{
+  outline: none;
+  border-color:#4caf50;
+  box-shadow: 0 0 0 3px rgba(76,175,80,.2);
+}
+#selectMesHistorico:active{ transform: scale(.99); }
+
+/* Oculta el desplegable nativo en IE/Edge antiguo (por si acaso) */
+#selectMesHistorico::-ms-expand{ display: none; }
+
+/* Opciones del desplegable (colores limpios) */
+#selectMesHistorico option{ background:#fff; color:#333; }
+
+/* Dark mode */
+body.dark #selectMesHistorico{
+  background-color: #1e1e1e;
+  background-position: calc(100% - .65rem) center;  /* anclada al borde derecho */
+  background-origin: padding-box;                    /* mide desde el padding */
+  color: #eee;
+  border: 1px solid #444;
+  box-shadow: 0 1px 3px rgba(0,0,0,.5);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path fill="%23eee" d="M7 10l5 5 5-5"/></svg>');
+}
+body.dark #selectMesHistorico:hover{ border-color:#81c995; }
+body.dark #selectMesHistorico:focus{
+  border-color:#81c995;
+  box-shadow: 0 0 0 3px rgba(129,201,149,.25);
+}
+body.dark #selectMesHistorico option{ background:#1e1e1e; color:#eee; }
+
+/* Mejoras de usabilidad en los inputs de fecha/mes */
+#filtros input[type="month"],
+#filtros input[type="date"]{
+  min-width: 160px;
+  padding-right: 2rem;              /* espacio para el icono del picker */
+}
+
+/* Que el icono sea visible también en modo claro (sobre el fondo verde) */
+#filtros input[type="month"]::-webkit-calendar-picker-indicator,
+#filtros input[type="date"]::-webkit-calendar-picker-indicator{
+  filter: invert(1);                 /* lo vuelve blanco */
+  opacity: .9;
 }
