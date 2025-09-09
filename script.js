@@ -1,20 +1,76 @@
 // -------------------- Configuración Inicial --------------------
 const body = document.body;
 
+// ------------ Estilos extra (toasts + highlight de fila) ------------
+(function injectEnhancementStyles() {
+  const css = `
+  .toast-container{position:fixed;bottom:1rem;right:1rem;display:flex;flex-direction:column;gap:.5rem;z-index:10000}
+  .toast{min-width:240px;max-width:340px;padding:.75rem 1rem;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:flex;align-items:center;gap:.75rem;opacity:0;transform:translateY(8px);transition:opacity .25s ease,transform .25s ease}
+  .toast.show{opacity:1;transform:translateY(0)}
+  .toast-info{background:#4caf50;color:#fff}
+  .toast-success{background:#2ecc71;color:#fff}
+  .toast-error{background:#e74c3c;color:#fff}
+  .toast__action{margin-left:auto;background:rgba(255,255,255,.2);border:none;border-radius:8px;padding:.35rem .6rem;color:inherit;cursor:pointer}
+  .toast__action:hover{background:rgba(255,255,255,.3)}
+  .flash-row{animation:flashRow 1.6s ease}
+  @keyframes flashRow{0%{box-shadow:inset 0 0 0 3px rgba(76,175,80,.9)}60%{box-shadow:inset 0 0 0 3px rgba(76,175,80,0)}100%{box-shadow:none}}
+  `;
+  const style = document.createElement('style');
+  style.textContent = css;
+  document.head.appendChild(style);
+})();
+
+// -------------------- Toasts --------------------
+let __toastContainer;
+function ensureToastContainer(){
+  if(!__toastContainer){
+    __toastContainer = document.createElement('div');
+    __toastContainer.className = 'toast-container';
+    document.body.appendChild(__toastContainer);
+  }
+}
+function showToast(message, { type='info', duration=3000, actionText, onAction } = {}){
+  ensureToastContainer();
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.setAttribute('role', 'status');
+  toast.innerHTML = `<span class="toast__msg">${esc(message)}</span>`;
+  if (actionText){
+    const btn = document.createElement('button');
+    btn.className = 'toast__action';
+    btn.textContent = actionText;
+    btn.addEventListener('click', () => {
+      if (typeof onAction === 'function') onAction();
+      remove();
+    });
+    toast.appendChild(btn);
+  }
+  __toastContainer.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+
+  let hideTimer = setTimeout(remove, duration);
+  function remove(){
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 250);
+  }
+  toast.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+  toast.addEventListener('mouseleave', () => hideTimer = setTimeout(remove, 1200));
+  return remove;
+}
+
 // -------------------- Banner offline --------------------
 const banner = document.createElement('div');
 banner.id = 'network-banner';
-banner.className = 'banner-actualizacion'; // reutiliza tu CSS
-banner.style.background = '#ffcc00'; // color amarillo para offline
+banner.className = 'banner-actualizacion';
+banner.style.background = '#ffcc00';
 banner.textContent = 'Sin conexión: algunos recursos pueden no estar disponibles';
 document.body.appendChild(banner);
 
-// Mostrar / ocultar según estado de red
 function updateNetworkStatus() {
   if (navigator.onLine) {
     banner.classList.remove('show');
   } else {
-    banner.textContent = 'Sin conexión: algunos recursos pueden no estar disponibles';
+    banner.textContent = 'Sin conexión: algunos recursos se han actualizado';
     banner.style.background = '#ffcc00';
     banner.classList.add('show');
   }
@@ -23,7 +79,7 @@ window.addEventListener('online', updateNetworkStatus);
 window.addEventListener('offline', updateNetworkStatus);
 updateNetworkStatus();
 
-// SW actualización (protegido por disponibilidad)
+// SW actualización
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (!event.data) return;
@@ -34,37 +90,24 @@ if ('serviceWorker' in navigator) {
       refreshBanner.className = 'banner-actualizacion';
       refreshBanner.innerHTML = `${message} <button id="reloadApp">${btnText}</button>`;
       document.body.appendChild(refreshBanner);
-
-      // Activar animación deslizante
       setTimeout(() => refreshBanner.classList.add('show'), 50);
-
       document.getElementById('reloadApp').addEventListener('click', onClick);
     }
 
     if (event.data.type === 'SW_UPDATED') {
-      showBanner(
-        'Nueva versión disponible.',
-        'Recargar',
-        () => {
-          if (navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-          }
-          window.location.reload();
+      showBanner('Nueva versión disponible.', 'Recargar', () => {
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
         }
-      );
+        window.location.reload();
+      });
     }
 
     if (event.data.type === 'SW_UPDATED_PARTIAL') {
-      showBanner(
-        'Algunos recursos se han actualizado.',
-        'Actualizar recursos',
-        async () => {
-          try {
-            await fetch(event.data.url, { cache: "reload" });
-          } catch {}
-          window.location.reload();
-        }
-      );
+      showBanner('Algunos recursos se han actualizado.', 'Actualizar recursos', async () => {
+        try { await fetch(event.data.url, { cache: "reload" }); } catch {}
+        window.location.reload();
+      });
     }
   });
 }
@@ -102,37 +145,26 @@ const menuOverlay = document.createElement('div');
 menuOverlay.id = 'menuOverlay';
 document.body.appendChild(menuOverlay);
 
-// --- HOTFIX estilo input "Filtrar por categoría" ---
-// Garantiza fuente "Inter" y borde redondeado (coinciden con tu CSS)
-(() => {
-  if (buscarCategoria) {
-    buscarCategoria.type = 'text'; // asegura el tipo correcto
-    buscarCategoria.style.borderRadius = '8px';
-    buscarCategoria.style.fontFamily = "'Inter', sans-serif";
-  }
-})();
+// -------------------- (Revertido) Nada de forzar estilo del filtro por JS --------------------
+// (Se eliminó el bloque HOTFIX para dejar el estilo del input de categoría como estaba en el CSS)
 
-// Confirm propio de la app (devuelve Promise<boolean>)
+// -------------------- Confirm propio (Promise<boolean>) --------------------
 function appConfirm({ title = "Confirmar", message = "", confirmText = "Aceptar", cancelText = "Cancelar", variant = "primary" } = {}) {
   return new Promise((resolve) => {
     const root = document.getElementById("appConfirm");
-    const dlg = root.querySelector(".app-confirm__dialog");
     const titleEl = document.getElementById("appConfirmTitle");
     const msgEl = document.getElementById("appConfirmMsg");
     const btnOk = document.getElementById("appConfirmOk");
     const btnCancel = document.getElementById("appConfirmCancel");
 
-    // Rellenar textos
     titleEl.textContent = title;
     msgEl.textContent = message;
     btnOk.textContent = confirmText;
     btnCancel.textContent = cancelText;
 
-    // Estilo del botón OK
     btnOk.classList.remove("btn-primary", "btn-danger");
     btnOk.classList.add(variant === "danger" ? "btn-danger" : "btn-primary");
 
-    // Mostrar
     root.classList.add("show");
     root.setAttribute("aria-hidden", "false");
     const prevOverflow = document.body.style.overflow;
@@ -144,12 +176,10 @@ function appConfirm({ title = "Confirmar", message = "", confirmText = "Aceptar"
       root.classList.remove("show");
       root.setAttribute("aria-hidden", "true");
       document.body.style.overflow = prevOverflow;
-      // Limpia listeners
       btnOk.removeEventListener("click", onOk);
       btnCancel.removeEventListener("click", onCancel);
       root.removeEventListener("click", onBackdrop);
       document.removeEventListener("keydown", onKey);
-      // Restaura foco
       if (prevFocus && prevFocus.focus) prevFocus.focus();
       resolve(ok);
     };
@@ -159,16 +189,12 @@ function appConfirm({ title = "Confirmar", message = "", confirmText = "Aceptar"
     const onBackdrop = (e) => { if (e.target === root || e.target.classList.contains("app-confirm__backdrop")) close(false); };
     const onKey = (e) => {
       if (e.key === "Escape") { e.preventDefault(); close(false); }
-      if (e.key === "Enter") { e.preventDefault(); close(true); }
-      // Trampa de tab simple (dos botones)
+      if (e.key === "Enter")  { e.preventDefault(); close(true); }
       if (e.key === "Tab") {
         const focusables = [btnCancel, btnOk];
         const i = focusables.indexOf(document.activeElement);
-        if (e.shiftKey) {
-          e.preventDefault(); focusables[(i <= 0 ? focusables.length : i) - 1].focus();
-        } else {
-          e.preventDefault(); focusables[(i + 1) % focusables.length].focus();
-        }
+        if (e.shiftKey) { e.preventDefault(); focusables[(i <= 0 ? focusables.length : i) - 1].focus(); }
+        else            { e.preventDefault(); focusables[(i + 1) % focusables.length].focus(); }
       }
     };
 
@@ -181,11 +207,7 @@ function appConfirm({ title = "Confirmar", message = "", confirmText = "Aceptar"
 
 // Cerrar al pulsar fuera (en el overlay)
 menuOverlay.addEventListener('click', () => {
-  menu.classList.remove('menu-abierto');
-  menuToggle.classList.remove('abierto');
-  menuToggle.setAttribute('aria-expanded','false');
-  document.body.classList.remove('menu-open');
-  menuOverlay.classList.remove('show');
+  closeMenu();
 });
 
 // -------------------- Datos persistentes --------------------
@@ -201,7 +223,7 @@ if (localStorage.getItem("darkMode") === "true") {
   darkIcon.textContent = "🌙";
 }
 
-// --- Prefijar valores para que no se vean vacíos en móvil
+// --- Prefijar valores (móvil)
 function fmtDate(d){
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -213,76 +235,47 @@ function fmtMonth(d){
   const m = String(d.getMonth() + 1).padStart(2, "0");
   return `${y}-${m}`;
 }
-
 const _today = new Date();
-
-// 1) Fecha del formulario: hoy por defecto (si está vacío)
 if (fechaInput && !fechaInput.value) {
-  if ("valueAsDate" in fechaInput) {
-    fechaInput.valueAsDate = _today;
-  } else {
-    fechaInput.value = fmtDate(_today);
-  }
+  if ("valueAsDate" in fechaInput) fechaInput.valueAsDate = _today;
+  else fechaInput.value = fmtDate(_today);
 }
-
-// 2) Filtro de mes: mes actual por defecto (si está vacío)
-if (filtrarMes && !filtrarMes.value) {
-  filtrarMes.value = fmtMonth(_today);
-}
+if (filtrarMes && !filtrarMes.value) filtrarMes.value = fmtMonth(_today);
 
 // -------------------- Gestión Mensual --------------------
-// Mes actual en horario LOCAL (no UTC)
 const now = new Date();
-const mesActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`; // "YYYY-MM"
-
-// Establecer el mes actual por defecto en el filtro <input type="month">
+const mesActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 if (filtrarMes) filtrarMes.value = mesActual;
 
 let mesGuardado = localStorage.getItem("mesActual");
-
-// 1) Inicializar mesActual si no existe (primer uso)
 if (!mesGuardado) {
   localStorage.setItem("mesActual", mesActual);
   mesGuardado = mesActual;
 }
-
-// 2) Si cambió el mes, archivar el mes anterior y arrancar limpio
 if (mesActual !== mesGuardado) {
   const prev = JSON.parse(localStorage.getItem("gastos")) || [];
-  if (prev.length > 0) {
-    localStorage.setItem(`gastos_${mesGuardado}`, JSON.stringify(prev));
-  }
+  if (prev.length > 0) localStorage.setItem(`gastos_${mesGuardado}`, JSON.stringify(prev));
   gastos = [];
   localStorage.setItem("gastos", JSON.stringify(gastos));
   localStorage.setItem("mesActual", mesActual);
   mesGuardado = mesActual;
 }
-
-// 3) Reparación defensiva
 (() => {
   if (!Array.isArray(gastos) || gastos.length === 0) return;
-
   const actuales = [];
   const porMes = {};
-
   for (const g of gastos) {
     if (!g || !g.fecha || typeof g.fecha !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(g.fecha)) {
-      actuales.push(g);
-      continue;
+      actuales.push(g); continue;
     }
     const m = g.fecha.slice(0, 7);
-    if (m === mesActual) {
-      actuales.push(g);
-    } else {
-      (porMes[m] ||= []).push(g);
-    }
+    if (m === mesActual) actuales.push(g);
+    else (porMes[m] ||= []).push(g);
   }
-
   for (const [m, arr] of Object.entries(porMes)) {
     const ya = JSON.parse(localStorage.getItem(`gastos_${m}`)) || [];
     localStorage.setItem(`gastos_${m}`, JSON.stringify(ya.concat(arr)));
   }
-
   if (actuales.length !== gastos.length) {
     gastos = actuales;
     localStorage.setItem("gastos", JSON.stringify(gastos));
@@ -290,14 +283,11 @@ if (mesActual !== mesGuardado) {
 })();
 
 // -------------------- Utilidades --------------------
-// Escapa &, <, >, ", ' para impedir inyección HTML al pintar
 function esc(s = "") {
   return String(s).replace(/[&<>"']/g, m => (
     { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[m]
   ));
 }
-
-// Normaliza para búsquedas: sin acentos, minúsculas y espacios compactados
 function normalizeStr(s = "") {
   return String(s)
     .normalize("NFD")
@@ -306,13 +296,12 @@ function normalizeStr(s = "") {
     .trim()
     .replace(/\s+/g, " ");
 }
-
 function capitalizeFirst(str = "") {
   if (!str) return "";
   return str.charAt(0).toLocaleUpperCase('es-ES') + str.slice(1);
 }
 
-// Paleta única estable para toda la sesión (categorías)
+// Paleta/categorías
 if (!window.__palette__) {
   window.__palette__ = [
     "#E69F00","#56B4E9","#009E73","#F0E442","#0072B2",
@@ -321,9 +310,7 @@ if (!window.__palette__) {
     "#CCEBC5","#FFED6F"
   ];
 }
-if (!window.__colorMap__) {
-  window.__colorMap__ = new Map();
-}
+if (!window.__colorMap__) window.__colorMap__ = new Map();
 function colorForCategory(label) {
   const key = (label || "Sin categoría").trim();
   const cmap = window.__colorMap__;
@@ -336,15 +323,15 @@ function colorForCategory(label) {
   return cmap.get(key);
 }
 
-// --- helper: mensaje “sin datos” nítido y centrado (sin desbordes)
+// Mensaje “sin datos” en canvas
 function drawNoDataMessage(canvas, text) {
   const ctx = canvas.getContext('2d');
   const rect = canvas.getBoundingClientRect();
   const dpr = Math.max(1, window.devicePixelRatio || 1);
 
-  canvas.style.width = '100%'; // CSS width
+  canvas.style.width = '100%';
   canvas.width  = Math.max(1, Math.floor(rect.width  * dpr));
-  canvas.height = Math.max(120, Math.floor(rect.height * dpr)); // evita alturas 0
+  canvas.height = Math.max(120, Math.floor(rect.height * dpr));
 
   ctx.save();
   ctx.scale(dpr, dpr);
@@ -360,7 +347,6 @@ function drawNoDataMessage(canvas, text) {
 // -------------------- Gráficos --------------------
 let chartPorcentaje, chartDiario, chartHistorico;
 
-// Opciones base para gráficos de barras (evita duplicación)
 const baseBarOpts = {
   responsive: true,
   maintainAspectRatio: false,
@@ -377,7 +363,6 @@ const baseBarOpts = {
 };
 
 function renderGraficoPorcentaje(mesFiltrado) {
-  // Renderiza solo si la sección está visible
   const seccion = document.getElementById("seccionGraficoPorcentaje");
   if (seccion && seccion.classList.contains("oculto")) return;
 
@@ -385,7 +370,6 @@ function renderGraficoPorcentaje(mesFiltrado) {
     ? gastos
     : JSON.parse(localStorage.getItem(`gastos_${mesFiltrado}`)) || [];
 
-  // Agrupar categorías (primera letra en mayúscula)
   const categorias = {};
   gastosAMostrar
     .filter(g => g.tipo === "gasto")
@@ -398,13 +382,11 @@ function renderGraficoPorcentaje(mesFiltrado) {
   canvas.style.height = '400px';
   canvas.style.maxHeight = '400px';
 
-  // Ajuste del buffer interno
   const rect = canvas.getBoundingClientRect();
   canvas.width = rect.width;
   canvas.height = rect.height;
   const ctx = canvas.getContext("2d");
 
-  // Si no hay datos, mostrar mensaje y salir
   if (Object.keys(categorias).length === 0) {
     if (chartPorcentaje) chartPorcentaje.destroy();
     drawNoDataMessage(canvas, "No hay gastos este mes");
@@ -450,10 +432,7 @@ function renderGraficoPorcentaje(mesFiltrado) {
       },
       elements: { arc: { borderAlign: "inner" } },
       plugins: {
-        legend: {
-          position: 'top',
-          labels: { color: textColor }
-        },
+        legend: { position: 'top', labels: { color: textColor } },
         tooltip: {
           backgroundColor: isDark ? 'rgba(0,0,0,0.85)' : '#fff',
           titleColor: textColor,
@@ -467,7 +446,6 @@ function renderGraficoPorcentaje(mesFiltrado) {
 }
 
 function renderGraficoDiario(mesFiltrado) {
-  // Solo renderiza si la sección está visible
   const sec = document.getElementById("seccionGraficoDiario");
   if (sec && sec.classList.contains("oculto")) return;
 
@@ -495,7 +473,6 @@ function renderGraficoDiario(mesFiltrado) {
   canvas.style.maxHeight = "400px";
   const ctx = canvas.getContext("2d");
 
-  // Si no hay datos, mensaje y salir
   const noData = datosGastos.every(v => v === 0) && datosBeneficios.every(v => v === 0);
   if (noData) {
     if (chartDiario) chartDiario.destroy();
@@ -514,10 +491,7 @@ function renderGraficoDiario(mesFiltrado) {
         { label: "Beneficios", data: datosBeneficios, backgroundColor: "#2ecc71" }
       ]
     },
-    options: {
-      ...baseBarOpts,
-      plugins: { legend: { position: "top" } }
-    }
+    options: { ...baseBarOpts, plugins: { legend: { position: "top" } } }
   });
 }
 
@@ -585,7 +559,6 @@ function totalsForMonth(m){
 function renderGraficoHistorico() {
   if (!graficoHistoricoCanvas || !selectMesHistorico) return;
 
-  // Solo renderiza si la sección está visible
   const sec = document.getElementById("seccionHistorico");
   if (sec && sec.classList.contains("oculto")) return;
 
@@ -595,7 +568,6 @@ function renderGraficoHistorico() {
 
   if (chartHistorico) chartHistorico.destroy();
 
-  // ——— Mensaje único y nítido en el CANVAS, ocultando el balance ———
   const showNoData = () => {
     drawNoDataMessage(graficoHistoricoCanvas, "No existen datos todavía");
     if (balanceHistorico) {
@@ -605,7 +577,6 @@ function renderGraficoHistorico() {
     }
   };
 
-  // ——— Mostrar balance cuando SÍ hay datos ———
   const showBalance = (text, val) => {
     if (!balanceHistorico) return;
     balanceHistorico.style.display = "";
@@ -615,10 +586,7 @@ function renderGraficoHistorico() {
 
   if (sel === "todos") {
     const months = getAvailableMonths();
-    if (months.length === 0) {
-      showNoData();
-      return;
-    }
+    if (months.length === 0) { showNoData(); return; }
 
     const gastosData = [], beneficiosData = [];
     months.forEach(m => {
@@ -643,10 +611,7 @@ function renderGraficoHistorico() {
     showBalance(`Balance acumulado: ${totalBalance.toFixed(2)} €`, totalBalance);
   } else {
     const t = totalsForMonth(sel);
-    if ((t.gastos ?? 0) === 0 && (t.beneficios ?? 0) === 0) {
-      showNoData();
-      return;
-    }
+    if ((t.gastos ?? 0) === 0 && (t.beneficios ?? 0) === 0) { showNoData(); return; }
 
     chartHistorico = new Chart(ctx, {
       type: "bar",
@@ -667,14 +632,14 @@ function renderGraficoHistorico() {
 function renderTabla() {
   tabla.innerHTML = "";
   let total = 0;
-  let gastosSum = 0; // suma de GASTOS del mes mostrado (para comparar con presupuesto)
+  let gastosSum = 0;
 
   const filtroTerm = normalizeStr(buscarCategoria.value || "");
   const filtroMes = filtrarMes.value || mesActual;
 
-  let gastosAMostrar = filtroMes === mesActual
+  const gastosAMostrar = filtroMes === mesActual
     ? gastos
-    : JSON.parse(localStorage.getItem(`gastos_${filtroMes}`)) || [];
+    : (JSON.parse(localStorage.getItem(`gastos_${filtroMes}`)) || []);
 
   const gastosFiltrados = gastosAMostrar.filter(g => {
     const catNorm = normalizeStr(g?.categoria || "");
@@ -684,21 +649,22 @@ function renderTabla() {
   gastosFiltrados.forEach((gasto) => {
     const fila = document.createElement("tr");
     fila.classList.add("fade-in");
+    fila.dataset.id = gasto.id;
 
     if (gasto.tipo === "gasto") fila.classList.add("gasto");
     else fila.classList.add("beneficio");
 
     const tipoLabel = gasto.tipo === "gasto" ? "Gasto" : "Beneficio";
+    // MOSTRAR categoría como estaba (respeta tu lógica previa con capitalización)
     const categoriaLabel = capitalizeFirst((gasto.categoria || "").trim());
 
-    // color consistente por categoría
     const keyCat = categoriaLabel || "Sin categoría";
     const colorCat = colorForCategory(keyCat);
 
     fila.innerHTML = `
       <td data-label="Tipo">${tipoLabel}</td>
       <td class="categoria" data-label="Categoría" style="border-color:${colorCat}">${esc(categoriaLabel)}</td>
-      <td data-label="Importe (€)" style="color: ${gasto.tipo === "gasto" ? '#e74c3c' : '#2ecc71'}">
+      <td data-label="Importe (€)" style="color:${gasto.tipo === "gasto" ? '#e74c3c' : '#2ecc71'}">
         ${gasto.tipo === "gasto" ? "-" : ""}${gasto.importe.toFixed(2)} €
       </td>
       <td data-label="Fecha">${gasto.fecha}</td>
@@ -711,12 +677,8 @@ function renderTabla() {
     `;
     tabla.appendChild(fila);
 
-    if (gasto.tipo === "gasto") {
-      total -= gasto.importe;
-      gastosSum += gasto.importe;
-    } else {
-      total += gasto.importe;
-    }
+    if (gasto.tipo === "gasto") { total -= gasto.importe; gastosSum += gasto.importe; }
+    else { total += gasto.importe; }
   });
 
   totalEl.textContent = `Balance: ${total.toFixed(2)} €`;
@@ -725,7 +687,6 @@ function renderTabla() {
   else if (total > 0) totalEl.style.color = "#e67e22";
   else totalEl.style.color = "#e74c3c";
 
-  // Aviso: comparar PRESUPUESTO con la SUMA DE GASTOS del mes actual
   if (presupuesto && filtroMes === mesActual && gastosSum > presupuesto) {
     alertaPresupuesto.textContent =
       `⚠️ Has superado tu presupuesto mensual (${gastosSum.toFixed(2)}€ / ${presupuesto.toFixed(2)}€)`;
@@ -740,6 +701,16 @@ function renderTabla() {
   renderGraficoPorcentaje(filtroMes);
   renderGraficoDiario(filtroMes);
   renderGraficoHistorico();
+}
+
+// --- Scroll helper: desplaza hasta la fila por ID y la resalta ---
+function scrollToRowById(id){
+  if (!id) return;
+  const row = tabla.querySelector(`tr[data-id="${CSS.escape(id)}"]`);
+  if (!row) return;
+  row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  row.classList.add('flash-row');
+  setTimeout(() => row.classList.remove('flash-row'), 1600);
 }
 
 // -------------------- CRUD (por id) --------------------
@@ -762,10 +733,12 @@ async function eliminarGastoPorId(id) {
     row.addEventListener('animationend', () => {
       gastos.splice(idx, 1);
       renderTabla();
+      showToast('Movimiento eliminado', { type: 'success', duration: 2200 });
     }, { once: true });
   } else {
     gastos.splice(idx, 1);
     renderTabla();
+    showToast('Movimiento eliminado', { type: 'success', duration: 2200 });
   }
 }
 
@@ -793,6 +766,9 @@ async function editarGastoPorId(id) {
 
   gastos.splice(idx, 1);
   renderTabla();
+
+  form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  showToast('Datos cargados para editar', { type: 'info', duration: 2200 });
 }
 
 // Delegación de eventos para botones editar/eliminar
@@ -810,13 +786,11 @@ form.addEventListener("submit", e => {
 
   const tipo = tipoInput.value;
 
-  // Normalizamos categoría y quitamos caracteres HTML
   const categoriaRaw = (categoriaInput.value || "").replace(/\s+/g, " ").trim();
   const categoria = categoriaRaw.replace(/[&<>"']/g, "");
 
   const importe = parseFloat(importeInput.value);
 
-  // Fecha: si viene vacía o mal formateada, ponemos HOY
   const fechaRegex = /^\d{4}-\d{2}-\d{2}$/;
   let fecha = (fechaInput.value || "").trim();
   if (!fechaRegex.test(fecha)) {
@@ -827,33 +801,27 @@ form.addEventListener("submit", e => {
     fecha = `${y}-${m}-${day}`;
   }
 
-  // Validaciones
-  if (!categoria) {
-    alert("La categoría no puede estar vacía.");
-    return;
-  }
-  if (isNaN(importe) || importe <= 0) {
-    alert("El importe debe ser un número mayor que 0.");
-    return;
-  }
+  if (!categoria) { showToast("La categoría no puede estar vacía.", { type: "error" }); return; }
+  if (isNaN(importe) || importe <= 0) { showToast("El importe debe ser un número mayor que 0.", { type: "error" }); return; }
 
-  // Guardar movimiento
-  gastos.push({ id: generarId(), tipo, categoria, importe, fecha });
+  const newId = generarId();
+  gastos.push({ id: newId, tipo, categoria, importe, fecha });
 
-  // Asegura que ves el nuevo registro en la tabla
   filtrarMes.value = fecha.slice(0, 7);
   buscarCategoria.value = "";
 
-  // Resetear formulario (dejamos HOY para el siguiente alta)
   tipoInput.value = "gasto";
   categoriaInput.value = "";
   importeInput.value = "";
   fechaInput.value = fecha;
 
   renderTabla();
+
+  scrollToRowById(newId);
+  showToast("Movimiento añadido", { type: "success", duration: 2000 });
 });
 
-// Generador de IDs únicos (string)
+// Generador de IDs únicos
 function generarId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2,9);
 }
@@ -869,7 +837,8 @@ presupuestoInput.addEventListener("change", () => {
 buscarCategoria.addEventListener("input", renderTabla);
 filtrarMes.addEventListener("input", () => {
   renderTabla();
-  setTituloGraficoDiario(); // usa el valor actual del filtro
+  setTituloGraficoDiario();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
 // Abre el selector nativo de fecha/mes al primer toque (móvil)
@@ -883,10 +852,8 @@ function enableOneTapPicker(input) {
   input.addEventListener("pointerdown", open);
   input.addEventListener("focus", open, { once: true });
 }
-
-// Actívalo para tus campos:
-enableOneTapPicker(fechaInput);  // <input type="date" id="fecha">
-enableOneTapPicker(filtrarMes);  // <input type="month" id="filtrarMes">
+enableOneTapPicker(fechaInput);
+enableOneTapPicker(filtrarMes);
 
 // -------------------- Export/Import --------------------
 function combinarGastos() {
@@ -908,6 +875,7 @@ exportCSVBtn.addEventListener("click", () => {
   a.download = "gastos.csv";
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  showToast("CSV exportado", { type: "info", duration: 1600 });
 });
 
 exportJSONBtn.addEventListener("click", () => {
@@ -916,6 +884,7 @@ exportJSONBtn.addEventListener("click", () => {
   a.href = URL.createObjectURL(blob);
   a.download = "gastos.json";
   a.click();
+  showToast("JSON exportado", { type: "info", duration: 1600 });
 });
 
 importJSONInput.addEventListener("change", e => {
@@ -928,11 +897,8 @@ importJSONInput.addEventListener("change", e => {
       const datos = JSON.parse(reader.result);
       if (!Array.isArray(datos)) throw new Error("Formato no válido");
 
-      // Índices de EXISTENTES (mes actual + archivados)
       const existentes = combinarGastos();
       const idsExistentes = new Set(existentes.map(g => g.id).filter(Boolean));
-
-      // Firma para dedup si el import no trae id: tipo|categoria|importe|fecha
       const firmasExistentes = new Set(
         existentes.map(g => {
           const tipo = g?.tipo === "beneficio" ? "beneficio" : "gasto";
@@ -948,12 +914,11 @@ importJSONInput.addEventListener("change", e => {
       for (const raw of datos) {
         if (!raw || typeof raw !== "object") continue;
 
-        // Normalización y validación
         const tipo = raw.tipo === "beneficio" ? "beneficio" : "gasto";
         const categoria = String((raw.categoria || "").replace(/\s+/g, " ").trim())
-                          .replace(/[&<>"']/g, ""); // sanitiza caracteres HTML
+                          .replace(/[&<>"']/g, "");
         const importe = Number(raw.importe);
-        const fecha = String(raw.fecha || "").slice(0,10); // YYYY-MM-DD
+        const fecha = String(raw.fecha || "").slice(0,10);
 
         if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) continue;
         if (!isFinite(importe) || importe <= 0) continue;
@@ -962,7 +927,6 @@ importJSONInput.addEventListener("change", e => {
         let id = (typeof raw.id === "string" && raw.id.trim()) ? raw.id : null;
         const firma = `${tipo}|${categoria.toLowerCase()}|${importe}|${fecha}`;
 
-        // Deduplicación:
         if (id && idsExistentes.has(id)) continue;
         if (!id && firmasExistentes.has(firma)) continue;
 
@@ -972,11 +936,11 @@ importJSONInput.addEventListener("change", e => {
         const m = fecha.slice(0,7);
 
         if (m === mesActual) {
-          gastos.push(item); // mes actual
+          gastos.push(item);
         } else {
           const key = `gastos_${m}`;
           const arr = JSON.parse(localStorage.getItem(key)) || [];
-          arr.push(item); // archiva en su mes correcto
+          arr.push(item);
           localStorage.setItem(key, JSON.stringify(arr));
         }
 
@@ -987,9 +951,9 @@ importJSONInput.addEventListener("change", e => {
 
       localStorage.setItem("gastos", JSON.stringify(gastos));
       renderTabla();
-      alert(`✅ Se importaron ${insertados} registros nuevos.`);
+      showToast(`Se importaron ${insertados} registros nuevos.`, { type: "success" });
     } catch (err) {
-      alert("Archivo inválido");
+      showToast("Archivo inválido", { type: "error" });
     }
   };
   reader.readAsText(file);
@@ -1001,7 +965,6 @@ toggleDarkBtn.addEventListener("click", () => {
   localStorage.setItem("darkMode", body.classList.contains("dark"));
   darkIcon.textContent = body.classList.contains("dark") ? "☀️" : "🌙";
 
-  // Pie: actualiza borde y tipografías (los colores por categoría ya son estables)
   if (chartPorcentaje) {
     const isDark = body.classList.contains('dark');
     const borde  = isDark ? '#fff' : '#000';
@@ -1018,23 +981,76 @@ toggleDarkBtn.addEventListener("click", () => {
   }
 });
 
-// -------------------- Menú hamburguesa --------------------
-menuToggle.addEventListener("click", () => {
-  const abierto = menu.classList.toggle("menu-abierto");
-  menuToggle.classList.toggle("abierto", abierto);
-  menuToggle.setAttribute("aria-expanded", abierto ? "true" : "false");
-  document.body.classList.toggle('menu-open', abierto);
-  menuOverlay.classList.toggle('show', abierto);
+// -------------------- Menú hamburguesa (sin salto al cerrar) --------------------
+let isMenuOpen = false;
 
-  // al abrir, enfoca el primer item
-  if (abierto) {
-    requestAnimationFrame(() => {
-      const firstItem = menu.querySelector("li");
-      if (firstItem) firstItem.focus();
-    });
-  }
+function positionMenuPanel() {
+  if (!isMenuOpen) return;
+  const rect = menuToggle.getBoundingClientRect();
+  const margin = 10; // separación visual bajo el botón
+  // Fijamos un top global que usan ambos estados del menú
+  document.documentElement.style.setProperty(
+    '--menuTop',
+    `${Math.round(window.scrollY + rect.bottom + margin)}px`
+  );
+}
+
+function openMenu() {
+  isMenuOpen = true;
+  menu.classList.add("menu-abierto");
+  menuToggle.classList.add("abierto");
+  menuToggle.setAttribute("aria-expanded","true");
+  document.body.classList.add('menu-open');
+  menuOverlay.classList.add('show');
+  positionMenuPanel();
+
+  requestAnimationFrame(() => {
+    const firstItem = menu.querySelector("li");
+    if (firstItem) firstItem.focus();
+  });
+}
+
+function closeMenu() {
+  if (!isMenuOpen) return;
+  isMenuOpen = false;
+
+  // Limpia la variable de top SOLO cuando termine la transición de 'right'
+  const clearTopVar = () => document.documentElement.style.removeProperty('--menuTop');
+  const onEnd = (e) => {
+    if (e.propertyName !== 'right') return;
+    menu.removeEventListener('transitionend', onEnd);
+    if (!isMenuOpen) clearTopVar();
+  };
+  menu.addEventListener('transitionend', onEnd);
+  // Fallback por si el navegador no dispara transitionend
+  setTimeout(() => {
+    menu.removeEventListener('transitionend', onEnd);
+    if (!isMenuOpen) clearTopVar();
+  }, 450);
+
+  menu.classList.remove("menu-abierto");
+  menuToggle.classList.remove("abierto");
+  menuToggle.setAttribute("aria-expanded","false");
+  document.body.classList.remove('menu-open');
+  menuOverlay.classList.remove('show');
+}
+
+menuToggle.addEventListener("click", () => {
+  isMenuOpen ? closeMenu() : openMenu();
 });
 
+window.addEventListener('resize', positionMenuPanel);
+window.addEventListener('scroll', positionMenuPanel);
+
+// Accesibilidad: cerrar con ESC
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && isMenuOpen) closeMenu();
+});
+
+// Cerrar tocando fuera
+menuOverlay.addEventListener('click', closeMenu);
+
+// Items del menú
 menu.querySelectorAll("li").forEach(item => {
   item.setAttribute('tabindex','0');
   item.setAttribute('role','button');
@@ -1042,25 +1058,19 @@ menu.querySelectorAll("li").forEach(item => {
   item.addEventListener("click", () => {
     const seccionId = item.dataset.section;
 
-    // mostrar sección seleccionada
     secciones.forEach(s => s.classList.add("oculto"));
     document.getElementById(seccionId).classList.remove("oculto");
 
-    // cerrar menú + overlay
-    menu.classList.remove("menu-abierto");
-    menuToggle.classList.remove("abierto");
-    menuToggle.setAttribute("aria-expanded","false");
-    document.body.classList.remove('menu-open');
-    menuOverlay.classList.remove('show');
+    closeMenu();
 
-    // Re-crear gráficos para que ANIMEN cada vez que entras
+    document.querySelector('main').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
     const mesSel = filtrarMes.value || mesActual;
 
     if (seccionId === "seccionGraficoPorcentaje") {
       if (chartPorcentaje) chartPorcentaje.destroy();
       requestAnimationFrame(() => { renderGraficoPorcentaje(mesSel); });
     }
-
     if (seccionId === "seccionGraficoDiario") {
       if (chartDiario) chartDiario.destroy();
       requestAnimationFrame(() => {
@@ -1068,14 +1078,12 @@ menu.querySelectorAll("li").forEach(item => {
         renderGraficoDiario(mesSel);
       });
     }
-
     if (seccionId === "seccionHistorico") {
       if (chartHistorico) chartHistorico.destroy();
       requestAnimationFrame(() => { renderGraficoHistorico(); });
     }
   });
 
-  // activa también con Enter o Barra espaciadora
   item.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); }
   });
