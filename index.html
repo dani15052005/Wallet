@@ -42,15 +42,15 @@
   <header>
     <h1>Gestor Financiero</h1>
     <button
-  id="menuToggle"
-  class="hamburger"
-  aria-label="Abrir menú"
-  aria-controls="menu"
-  aria-expanded="false">
-  <span class="bar"></span>
-  <span class="bar"></span>
-  <span class="bar"></span>
-</button>
+      id="menuToggle"
+      class="hamburger"
+      aria-label="Abrir menú"
+      aria-controls="menu"
+      aria-expanded="false">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </button>
   </header>
 
   <nav id="menu" class="menu-cerrado">
@@ -66,12 +66,47 @@
     <!-- Dark Mode -->
     <button id="toggleDark"><span id="darkIcon">🌙</span></button>
 
+    <!-- Onboarding: guía rápida para nuevos -->
+    <div id="onboardingCard" class="onboard-card" aria-live="polite" hidden>
+      <h3>Empezamos en 1 minuto</h3>
+      <ul class="onboard-list">
+        <li class="onboard-item" data-key="presupuesto">
+          <span class="check" aria-hidden="true">○</span>
+          <span>Define tu presupuesto mensual</span>
+        </li>
+        <li class="onboard-item" data-key="primerGasto">
+          <span class="check" aria-hidden="true">○</span>
+          <span>Añade tu primer gasto</span>
+        </li>
+        <li class="onboard-item" data-key="graficos">
+          <span class="check" aria-hidden="true">○</span>
+          <span>Mira tus gráficos</span>
+        </li>
+      </ul>
+      <div class="onboard-actions">
+        <button id="onboardSkip" class="btn-secondary" type="button">Saltar</button>
+        <button id="onboardClose" class="btn-primary" type="button">Entendido</button>
+      </div>
+    </div>
+
     <!-- Sección formulario -->
     <section id="seccionFormulario">
       <div id="presupuesto-container">
         <label for="presupuesto">Presupuesto mensual (€):</label>
         <input type="number" id="presupuesto" placeholder="Ej. 1000">
       </div>
+
+      <!-- Presupuestos por categoría -->
+<div id="catBudgetPanel" class="catbudget-card">
+  <h3>Presupuestos por categoría</h3>
+  <div class="catbudget-row">
+    <input type="text" id="catBudgetCategoria" placeholder="Categoría (ej. Comida)" list="categoriasSugeridas">
+    <input type="number" id="catBudgetImporte" placeholder="€ mensual">
+    <button id="catBudgetGuardar" type="button" class="btn-primary">Guardar</button>
+  </div>
+  <datalist id="categoriasSugeridas"></datalist>
+  <div id="catBudgetList" class="catbudget-list"></div>
+</div>
 
       <form id="formulario">
         <select id="tipo">
@@ -81,6 +116,15 @@
         <input type="text" id="categoria" placeholder="Ej. Transporte" />
         <input type="number" id="importe" placeholder="Ej. 120" />
         <input type="date" id="fecha" />
+        <label class="recur-inline">
+        <input id="recurrente" type="checkbox">
+              Recurrente
+        </label>
+        <select id="recurrenteFrecuencia">
+        <option value="mensual" selected>Mensual</option>
+        <!-- más adelante podrás añadir semanal/quincenal, etc. -->
+        </select>
+
         <button type="submit">Agregar</button>
       </form>
 
@@ -102,6 +146,13 @@
          </thead>
          <tbody id="tablaGastos"></tbody>
         </table>
+      </div>
+
+      <!-- 👇 NUEVO: Estado vacío -->
+      <div id="estadoVacio" class="empty-state" aria-live="polite" hidden>
+        <h3>🗓️ Sin movimientos</h3>
+        <p id="emptyStateMsg">Todavía no hay movimientos este mes.</p>
+        <button id="addFirstBtn" class="btn-primary" type="button">Añadir el primero</button>
       </div>
 
       <div id="total">Total: 0 €</div>
