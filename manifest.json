@@ -1,6 +1,6 @@
 {
-  "name": "Gestor Financiero",
-  "short_name": "Gestor",
+  "name": "Ledgerly",
+  "short_name": "Ledgerly",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

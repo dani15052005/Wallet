@@ -229,6 +229,32 @@ body.dark .btn-danger-xs{
 .table-sortable th .th-label{ display:inline-block; }
 .table-sortable th.sort-asc  .th-label::after{ content:" ▲"; font-size:.8em; opacity:.7; }
 .table-sortable th.sort-desc .th-label::after{ content:" ▼"; font-size:.8em; opacity:.7; }
+@keyframes rowFadeOut { to { opacity:.0; transform: translateY(4px); } }
+#tablaGastos tr.fade-out { animation: rowFadeOut .22s ease forwards; }
+/* Header con blur y cobertura hasta la zona segura superior (iOS) */
+header{
+  position: sticky;
+  top: 0;
+  z-index: 10004;
+  backdrop-filter: saturate(150%) blur(10px);
+  -webkit-backdrop-filter: saturate(150%) blur(10px);
+  background: rgba(255,255,255,.65);
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+}
+body.dark header{ background: rgba(17,17,17,.55); }
+
+/* Extiende el fondo/blur por detrás del notch/status bar */
+header::before{
+  content:"";
+  position:absolute;
+  left:0; right:0;
+  top: calc(-1 * env(safe-area-inset-top, 0px));
+  height: env(safe-area-inset-top, 0px);
+  backdrop-filter: inherit;
+  -webkit-backdrop-filter: inherit;
+  background: inherit;
+  pointer-events:none;
+}
   `;
   const style = document.createElement('style');
   style.textContent = css;
@@ -1946,10 +1972,6 @@ function getMonthArrayRef(monthKey){
 
 // -------------------- CRUD (por id) --------------------
 async function eliminarGastoPorId(id, monthKey) {
-  const ref = getMonthArrayRef(monthKey);
-  const idx = ref.arr.findIndex(g => String(g.id) === String(id));
-  if (idx === -1) return;
-
   const ok = await appConfirm({
     title: "Eliminar movimiento",
     message: "Esta acción no se puede deshacer. ¿Quieres eliminar este movimiento?",
@@ -1959,9 +1981,19 @@ async function eliminarGastoPorId(id, monthKey) {
   });
   if (!ok) return;
 
-  const eliminado = ref.arr[idx];
+  // ▶️ Rebusca SIEMPRE el gasto “fresco”
+  const ref0 = getMonthArrayRef(monthKey);
+  let idx0 = ref0.arr.findIndex(g => String(g.id) === String(id));
+  if (idx0 === -1) { renderTabla(); return; }
+  const snapshot = ref0.arr[idx0]; // copia para el toast (por si cambia idx)
 
   const ejecutarBorrado = () => {
+    // Recalcula ref/idx justo al ejecutar el borrado (estado actual)
+    const ref = getMonthArrayRef(monthKey);
+    const idx = ref.arr.findIndex(g => String(g.id) === String(id));
+    if (idx === -1) { renderTabla(); return; }
+
+    const eliminado = ref.arr[idx];
     ref.arr.splice(idx, 1);
     ref.save();
     renderTabla();
@@ -1971,11 +2003,15 @@ async function eliminarGastoPorId(id, monthKey) {
       duration: 3500,
       actionText: 'Deshacer',
       onAction: () => {
-        ref.arr.splice(Math.min(idx, ref.arr.length), 0, eliminado);
-        ref.save();
+        const mk = monthKeyOf(eliminado.fecha) || monthKey;
+        const refBack = getMonthArrayRef(mk);
+        const reIdx = Math.min(idx, refBack.arr.length);
+        refBack.arr.splice(reIdx, 0, eliminado);
+        refBack.save();
+
         const catKey = capitalizeFirst((eliminado.categoria || "").trim());
-        const mk = String(eliminado.fecha || "").slice(0,7) || monthKey;
         maybeToastBudgetBackUnder(catKey, mk, eliminado.importe, eliminado.tipo);
+
         renderTabla();
         scrollToRowById(eliminado.id);
         showToast('Eliminación deshecha', { type: 'info', duration: 1600 });
@@ -1983,26 +2019,22 @@ async function eliminarGastoPorId(id, monthKey) {
     });
   };
 
-  const row = tabla.querySelector(`button.eliminar[data-id="${cssEscape(id)}"][data-month="${cssEscape(monthKey)}"]`)?.closest('tr');
-  // dentro de eliminarGastoPorId, reemplaza el bloque del if(row) por:
-if (row) {
-  let done = false;
-  const finish = () => { if (done) return; done = true; ejecutarBorrado(); };
-
-  row.classList.add('fade-out');
-
-  const cs = getComputedStyle(row);
-  const hasAnim = cs.animationName !== 'none' && parseFloat(cs.animationDuration) > 0;
-
-  if (hasAnim) {
-    row.addEventListener('animationend', finish, { once: true });
-    setTimeout(finish, 600); // seguridad por si el evento no llega
+  // 🔄 Animación opcional de salida si existe la fila
+  const row = tabla.querySelector(`tr[data-id="${cssEscape(id)}"]`);
+  if (row) {
+    row.classList.add('fade-out');
+    const cs = getComputedStyle(row);
+    const hasAnim = cs.animationName !== 'none' && parseFloat(cs.animationDuration) > 0;
+    const finish = () => ejecutarBorrado();
+    if (hasAnim) {
+      row.addEventListener('animationend', finish, { once: true });
+      setTimeout(finish, 600); // respaldo por si el evento no llega
+    } else {
+      finish();
+    }
   } else {
-    finish();
+    ejecutarBorrado();
   }
-} else {
-  ejecutarBorrado();
-}
 }
 
 async function editarGastoPorId(id, monthKey) {
