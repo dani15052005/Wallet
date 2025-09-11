@@ -217,12 +217,18 @@ body.dark .btn-danger-xs{
 }
 
 /* Botón Guardar un poquito más grande */
+/* Botón Guardar un poquito más grande */
 #catBudgetGuardar{
   padding: calc(.5rem + 2px) calc(.8rem + 2px);
   font-size: .98rem;
   border-radius:12px; /* por si el botón no lo hereda */
 }
 
+/* --- Tabla ordenable --- */
+.table-sortable th{ user-select:none; cursor:pointer; white-space:nowrap; }
+.table-sortable th .th-label{ display:inline-block; }
+.table-sortable th.sort-asc  .th-label::after{ content:" ▲"; font-size:.8em; opacity:.7; }
+.table-sortable th.sort-desc .th-label::after{ content:" ▼"; font-size:.8em; opacity:.7; }
   `;
   const style = document.createElement('style');
   style.textContent = css;
@@ -466,6 +472,80 @@ const darkIcon = document.getElementById("darkIcon");
 // --- Recurrentes (estado global/UI)
 const recurrenteChk  = document.getElementById("recurrente");
 const recurrenteFreq = document.getElementById("recurrenteFrecuencia");
+
+// --- Ordenación de tabla ---
+const SORT_STORAGE_KEY = 'tableSort_v1';
+let sortState = (() => {
+  try { return JSON.parse(localStorage.getItem(SORT_STORAGE_KEY)) || { key:'fecha', dir:'desc' }; }
+  catch { return { key:'fecha', dir:'desc' }; }
+})();
+
+function saveSort(){ localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify(sortState)); }
+
+function getSorter() {
+  const dir = sortState.dir === 'asc' ? 1 : -1;
+  const coll = new Intl.Collator('es', { numeric:true, sensitivity:'base' });
+  switch (sortState.key) {
+    case 'importe': return (a,b) => dir * ((a.importe||0) - (b.importe||0));
+    case 'fecha':   return (a,b) => dir * (String(a.fecha||'').localeCompare(String(b.fecha||'')));
+    case 'categoria': return (a,b) => dir * coll.compare(String(a.categoria||''), String(b.categoria||''));
+    case 'tipo':      return (a,b) => dir * coll.compare(String(a.tipo||''), String(b.tipo||''));
+    default: return () => 0;
+  }
+}
+
+function setSort(key){
+  if (sortState.key === key){
+    sortState.dir = (sortState.dir === 'asc') ? 'desc' : 'asc';
+  } else {
+    sortState.key = key;
+    sortState.dir = (key === 'importe' || key === 'fecha') ? 'desc' : 'asc';
+  }
+  saveSort();
+  renderTabla();
+  updateSortUI();
+}
+
+
+function updateSortUI(){
+  const tableEl = tabla?.closest('table');
+  if (!tableEl) return;
+  const ths = tableEl.querySelectorAll('thead th[data-sort-key]');
+  ths.forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+    if (th.dataset.sortKey === sortState.key){
+      th.classList.add(sortState.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
+  });
+}
+
+function setupSortingUI(){
+  const tableEl = tabla?.closest('table');
+  if (!tableEl) return;
+  tableEl.classList.add('table-sortable');
+
+  let thead = tableEl.querySelector('thead');
+  if (!thead){
+    thead = document.createElement('thead');
+    thead.innerHTML = `
+      <tr>
+        <th data-sort-key="tipo"><span class="th-label">Tipo</span></th>
+        <th data-sort-key="categoria"><span class="th-label">Categoría</span></th>
+        <th data-sort-key="importe"><span class="th-label">Importe (€)</span></th>
+        <th data-sort-key="fecha"><span class="th-label">Fecha</span></th>
+        <th><span class="th-label">Acciones</span></th>
+      </tr>`;
+    tableEl.insertBefore(thead, tableEl.firstChild);
+  }
+
+  thead.addEventListener('click', (e) => {
+    const th = e.target.closest('th[data-sort-key]');
+    if (!th) return;
+    setSort(th.dataset.sortKey);
+  });
+
+  updateSortUI();
+}
 
 function ensureRecurrenteFrecuenciaOptions(){
   if (!recurrenteFreq) return;
@@ -812,7 +892,7 @@ function renderCatBudgets(){
 
     // 3) Dos frames para asegurar el “before” está pintado y luego animar al “after”
     requestAnimationFrame(() => {
-      bar.style.transition = ""; // vuelve a las transiciones del CSS
+      bar.style.transition = "";
       requestAnimationFrame(() => {
         bar.classList.remove("ok","warn","over");
         bar.classList.add(status);
@@ -969,8 +1049,8 @@ function removeRecurrentByRid(rid){
   toDelete.forEach(k => recurrentsApplied.delete(k));
   saveRecurrentsApplied();
 
-  checkRecurrentsReminder();   // repinta la tarjeta
-  renderTabla();               // por si cambia el estado de “pendientes”
+  checkRecurrentsReminder();
+  renderTabla();
   showToast("Regla recurrente eliminada", { type:"success" });
 }
 
@@ -1090,13 +1170,13 @@ function renderRecurrentManager(){
 }
 
 function monthKeyOf(dateStr){ return String(dateStr || "").slice(0,7); }
-function lastDayIn(y, m){ return new Date(y, m, 0).getDate(); } // m = 1-12
+function lastDayIn(y, m){ return new Date(y, m, 0).getDate(); }
 
 // Próxima fecha para "mensual" en el mes seleccionado (misma 'day' del startDate; si no existe, último día)
 function dueDateForMonthly(r, monthKey){
   const [y, m] = monthKey.split("-").map(Number);
   const startMK = monthKeyOf(r.startDate);
-  if (monthKey < startMK) return null; // aún no ha empezado
+  if (monthKey < startMK) return null;
   const dayFromStart = parseInt((r.startDate || "").slice(8,10), 10) || 1;
   const day = Math.min(dayFromStart, lastDayIn(y, m));
   return `${y}-${String(m).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
@@ -1241,7 +1321,7 @@ function applyOneRecurrent({ r, date, key }){
   recurrentsApplied.add(key);
   saveRecurrentsApplied();
 
-  renderTabla();                    // respeta el mes filtrado
+  renderTabla();
   scrollToRowById(newItem.id);
   showToast("Recurrente añadido", { type:"success", duration: 1500 });
   checkRecurrentsReminder();
@@ -1614,6 +1694,8 @@ function renderTabla() {
     return !filtroTerm || catNorm.includes(filtroTerm);
   });
 
+  const gastosOrdenados = gastosFiltrados.slice().sort(getSorter());
+
   // ---- Estado vacío
   if (gastosFiltrados.length === 0) {
     tabla.innerHTML = "";
@@ -1637,6 +1719,7 @@ function renderTabla() {
     renderGraficoDiario(filtroMes);
     renderGraficoHistorico();
     renderCatBudgets();
+    updateSortUI();
     return;
   } else {
     if (estadoVacio) estadoVacio.hidden = true;
@@ -1644,7 +1727,8 @@ function renderTabla() {
 
   // ---- Render filas
   let rowCount = 0;
-  gastosFiltrados.forEach((gasto) => {
+  // DONDE AHORA PONE:
+    gastosOrdenados.forEach((gasto) => {
     const fila = document.createElement("tr");
     fila.classList.add("fade-in");
     fila.dataset.id = gasto.id;
@@ -1709,6 +1793,7 @@ function renderTabla() {
     estadoVacio.hidden = hayFilas;
     estadoVacio.style.display = hayFilas ? 'none' : '';
   }
+   updateSortUI();
 }
 
 // --- Scroll helper: desplaza hasta la fila por ID y la resalta ---
@@ -2177,6 +2262,24 @@ function injectQuickAddSheet(){
     if (!cat){ showToast('La categoría no puede estar vacía.', { type:'error' }); return; }
     if (!isFinite(imp) || imp <= 0){ showToast('Importe inválido.', { type:'error' }); return; }
 
+    // Focus trap: recorrer solo por los controles del sheet con Tab/Shift+Tab
+(() => {
+  const focusablesSel = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+  const trap = (e) => {
+    if (!sheet.classList.contains('show')) return;
+    if (e.key !== 'Tab') return;
+
+    const nodes = [...sheet.querySelectorAll(focusablesSel)]
+      .filter(el => !el.hasAttribute('disabled') && el.offsetParent !== null);
+    if (!nodes.length) return;
+
+    const first = nodes[0], last = nodes[nodes.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+  sheet.addEventListener('keydown', trap);
+})();
+
     // Volcamos al formulario "grande" y reutilizamos tu flujo
     tipoInput.value = tipoSel;
     categoriaInput.value = cat;
@@ -2638,6 +2741,8 @@ if (selectMesHistorico){
 
 setTituloGraficoDiario();
 renderTabla();
+setupSortingUI();
+updateSortUI();
 refreshCategorySuggestions();
 renderCatBudgets();
 checkRecurrentsReminder();
