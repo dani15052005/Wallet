@@ -118,10 +118,6 @@ body.dark .recur-card{ border-color:#333; }
 .recur-actions{ display:flex; gap:.5rem; margin-top:.5rem; }
 
 /* Botones XS coherentes con la app */
-.btn-xs{
-  padding:.35rem .6rem; border-radius:12px; border:1px solid #e5e7eb;
-  background:#fff; cursor:pointer;
-}
 body.dark .btn-xs{ border-color:#333; background:#111; color:#eee; }
 .btn-primary-xs{ border-color:#4caf50; }
 /* Botones XS (visibles en light mode) */
@@ -188,7 +184,7 @@ body.dark .btn-danger-xs{
 }
 #tablaGastos tr.swipeable::before{
   left:0;
-  background: #e8f5e9 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='%232e7d32'%3E%3Cpath d='M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z'/%3E%3C/svg%3E") center/24px no-repeat;
+  background: #e8f5e9 url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='24'%20height='24'%20fill='%232e7d32'%3E%3Cpath%20d='M3%2017.25V21h3.75L17.81%209.94l-3.75-3.75L3%2017.25zM20.71%207.04a1.003%201.003%200%200%200%200-1.42l-2.34-2.34a1.003%201.003%200%200%200-1.42%200l-1.83%201.83%203.75%203.75%201.84-1.82z'/%3E%3C/svg%3E") center/24px no-repeat;
   border-radius: 12px 0 0 12px;
 }
 #tablaGastos tr.swipeable::after{
@@ -241,6 +237,7 @@ header{
   background: rgba(255,255,255,.65);
   padding-top: calc(10px + env(safe-area-inset-top, 0px));
 }
+/* ... */
 body.dark header{ background: rgba(17,17,17,.55); }
 
 /* Extiende el fondo/blur por detrás del notch/status bar */
@@ -255,51 +252,100 @@ header::before{
   background: inherit;
   pointer-events:none;
 }
+
+/* Aparición suave de filas nuevas */
+@keyframes rowFadeIn { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform:none; } }
+tr.fade-in { animation: rowFadeIn .18s ease; }
+@media (prefers-reduced-motion: reduce){
+  tr.fade-in{ animation:none; }
+  #tablaGastos tr.fade-out{ animation:none; }
+}
+
+/* Sombra discreta al hacer scroll */
+header.is-scrolled { box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+
+.banner-actualizacion{
+  position: fixed;
+  left: 0; right: 0; top: 0;
+  transform: translateY(-100%);
+  transition: transform .2s ease;
+  padding: .5rem .75rem;
+  text-align: center;
+  z-index: 10030;
+  color: #111;
+}
+.banner-actualizacion.show{ transform: translateY(0); }
+body.dark .banner-actualizacion{ color:#fff; }
+
+/* Mientras el menú esté abierto, no resaltes el .active si no está bajo el cursor */
+body.menu-open #menu li.active{
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Si el activo es además el hovered, sí se resalta como cualquier item */
+body.menu-open #menu li.active:hover{
+  background: rgba(255,255,255,.18) !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.45) !important;
+  border-radius: 12px;
+}
+
+/* Variante dark para el hovered del activo */
+body.dark.menu-open #menu li.active:hover{
+  background: rgba(255,255,255,.12) !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.35) !important;
+}
+
   `;
   const style = document.createElement('style');
   style.textContent = css;
   document.head.appendChild(style);
 })();
 
+// 1) Punto verde en el botón del menú
 (() => {
   const css = `
-  #menuToggle{ position:relative; }
-  #menuToggle.has-notifs::after{
-    content:"";
-    position:absolute; top:6px; right:6px; width:8px; height:8px;
-    border-radius:50%;
-    background:#4caf50;
-    box-shadow:0 0 0 2px var(--notifBorder,#fff);
-  }
-  body.dark #menuToggle.has-notifs::after{ --notifBorder:#111; }
+    #menuToggle{ position:relative; }
+    #menuToggle.has-notifs::after{
+      content:"";
+      position:absolute; top:6px; right:6px; width:8px; height:8px;
+      border-radius:50%; background:#4caf50;
+      box-shadow:0 0 0 2px var(--notifBorder,#fff);
+    }
+    body.dark #menuToggle.has-notifs::after{ --notifBorder:#111; }
   `;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
+})();
 
-  (() => {
+// 2) Inputs/Selects de recurrentes + fijar botón menú arriba derecha
+(() => {
   const css = `
-/* Redondeo y estilo de inputs/selects en el gestor de recurrentes */
-.recur-item input,
-.recur-item select{
-  border-radius:12px !important;
-  padding:.35rem .55rem;
-  border:1px solid var(--border-color,#e5e7eb);
-  background:#fff;
-}
-body.dark .recur-item input,
-body.dark .recur-item select{
-  background:#111; border-color:#333; color:#eee;
-}
-
-/* Anclar el botón del menú a la esquina superior derecha */
-#menuToggle{
+    .recur-item input,
+    .recur-item select{
+      border-radius:12px !important;
+      padding:.35rem .55rem;
+      border:1px solid var(--border-color,#e5e7eb);
+      background:#fff;
+    }
+    body.dark .recur-item input,
+    body.dark .recur-item select{
+      background:#111; border-color:#333; color:#eee;
+    }
+    #menuToggle{
   position:fixed !important;
   right:12px !important;
   left:auto !important;
   top:12px !important;
-  z-index:10002;
+  z-index:10060; /* por encima del header (10004), menú (10050) y overlay (10040) */
 }
-/* Mantenerlo a la vista cuando el panel está abierto */
-body.menu-open #menuToggle{ right:12px !important; }
-`;
+    body.menu-open #menuToggle{ right:12px !important; }
+  `;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
+})();
 
 // --- FAB + Quick Add (estilos) ---
 (() => {
@@ -311,7 +357,7 @@ body.menu-open #menuToggle{ right:12px !important; }
     background:#4caf50; color:#fff; cursor:pointer;
     box-shadow:0 10px 24px rgba(0,0,0,.22);
     transition:transform .12s ease, box-shadow .12s ease;
-    z-index:10003;
+    z-index:10060;
   }
   .fab-add:active{ transform:scale(.96); box-shadow:0 6px 16px rgba(0,0,0,.22); }
   .fab-add:focus{ outline:3px solid rgba(76,175,80,.45); outline-offset:2px; }
@@ -362,14 +408,67 @@ body.menu-open #menuToggle{ right:12px !important; }
   document.head.appendChild(s);
 })();
 
-  const style = document.createElement('style');
-  style.textContent = css;
-  document.head.appendChild(style);
-})();
+(() => {
+  const css = `
+  :root{ --bottomBarH: 64px; }
 
-  const style = document.createElement('style');
-  style.textContent = css;
-  document.head.appendChild(style);
+  /* Barra inferior oculta por defecto */
+  #bottomNav{ display:none; }
+  @media (max-width: 1024px){
+  body.has-bottomnav.toast-visible .toast-container{
+    bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+  /* -------- Solo móviles/tablets -------- */
+  @media (max-width: 1024px){
+    /* Mostrar barra y reservar espacio inferior del contenido */
+    body.has-bottomnav{ padding-bottom: calc(var(--bottomBarH) + env(safe-area-inset-bottom, 0px)); }
+
+    /* Ocultar menú hamburguesa cuando hay bottom nav */
+    body.has-bottomnav #menuToggle{ display:none !important; }
+
+    /* Barra */
+    #bottomNav{
+      position:fixed; left:0; right:0; bottom:0;
+      height: var(--bottomBarH);
+      display:grid; grid-template-columns: repeat(5,1fr); align-items:stretch;
+      backdrop-filter: saturate(180%) blur(14px);
+      -webkit-backdrop-filter: saturate(180%) blur(14px);
+      background: rgba(255,255,255,.85);
+      border-top: 1px solid #e5e7eb;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      z-index:10004;
+    }
+    body.dark #bottomNav{
+      background: rgba(17,17,17,.75);
+      border-top-color:#333;
+    }
+
+    #bottomNav button{
+      appearance:none; border:0; background:transparent; margin:0; padding:.35rem 0 .2rem;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.25rem;
+      font: inherit; color: inherit; cursor:pointer;
+    }
+    #bottomNav .icon{ font-size:1.15rem; line-height:1; }
+    #bottomNav .label{ font-size:.75rem; opacity:.85; }
+
+    #bottomNav button[aria-current="page"] .label{ font-weight:700; opacity:1; }
+    #bottomNav button[aria-current="page"]{ color:#2e7d32; }
+    body.dark #bottomNav button[aria-current="page"]{ color:#81c995; }
+
+    /* Subir el FAB para que no tape la barra */
+    .fab-add{ bottom: calc(16px + var(--bottomBarH) + env(safe-area-inset-bottom, 0px)); }
+
+    /* Subir los toasts cuando hay barra inferior */
+    body.has-bottomnav .toast-container{
+      bottom: calc(1rem + var(--bottomBarH) + 12px + env(safe-area-inset-bottom, 0px));
+    }
+  }
+  `;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
 })();
 
 // -------------------- Toasts --------------------
@@ -425,12 +524,25 @@ function showToast(message, { type='info', duration=3000, actionText, onAction }
   return remove;
 }
 
+// Cerrar todos los toasts con Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (!__toastContainer) return;
+  const toasts = __toastContainer.querySelectorAll('.toast');
+  if (!toasts.length) return;
+
+  toasts.forEach(t => t.remove());
+  document.body.classList.remove('toast-visible');
+});
+
 // -------------------- Banner offline --------------------
 const banner = document.createElement('div');
 banner.id = 'network-banner';
 banner.className = 'banner-actualizacion';
 banner.style.background = '#ffcc00';
 banner.textContent = 'Sin conexión: algunos recursos pueden no estar disponibles';
+banner.setAttribute('role','status');
+banner.setAttribute('aria-live','polite');
 document.body.appendChild(banner);
 
 function updateNetworkStatus() {
@@ -449,15 +561,25 @@ updateNetworkStatus();
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (!event.data) return;
-    function showBanner(message, btnText, onClick) {
-      if (document.getElementById('reloadApp')) return;
-      const refreshBanner = document.createElement('div');
-      refreshBanner.className = 'banner-actualizacion';
-      refreshBanner.innerHTML = `${message} <button id="reloadApp">${btnText}</button>`;
-      document.body.appendChild(refreshBanner);
-      setTimeout(() => refreshBanner.classList.add('show'), 50);
-      document.getElementById('reloadApp').addEventListener('click', onClick);
-    }
+  
+  function showBanner(message, btnText, onClick) {
+  if (document.getElementById('reloadApp')) return;
+  const refreshBanner = document.createElement('div');
+  refreshBanner.className = 'banner-actualizacion';
+  refreshBanner.setAttribute('role','status');
+  refreshBanner.setAttribute('aria-live','polite');
+  refreshBanner.innerHTML = `${message} <button id="reloadApp">${btnText}</button>`;
+
+  // 👇 si ya hay banners visibles, apila este debajo sumando la altura
+  const visibles = [...document.querySelectorAll('.banner-actualizacion.show')];
+  const offset = visibles.reduce((h, el) => h + el.offsetHeight, 0);
+  if (offset > 0) refreshBanner.style.top = offset + 'px';
+
+  document.body.appendChild(refreshBanner);
+  setTimeout(() => refreshBanner.classList.add('show'), 50);
+  document.getElementById('reloadApp').addEventListener('click', onClick);
+}
+
     if (event.data.type === 'SW_UPDATED') {
       showBanner('Nueva versión disponible.', 'Recargar', () => {
         if (navigator.serviceWorker.controller) {
@@ -612,6 +734,60 @@ const categoriasSugeridasDL = document.getElementById("categoriasSugeridas");
 // Menú
 const menuToggle = document.getElementById("menuToggle");
 const menu = document.getElementById("menu");
+
+// Menú inerte cuando está cerrado + hover solo abierto
+(() => {
+  const css = `
+    /* Nada de eventos sobre el menú si no está abierto */
+    body:not(.menu-open) #menu,
+    body:not(.menu-open) #menu *{
+      pointer-events: none !important;
+    }
+
+    /* Por si queda alguna regla previa de :hover */
+    body:not(.menu-open) #menu li:hover{
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+
+    /* Hover SOLO cuando el menú está abierto */
+    body.menu-open #menu li:hover{
+      background: rgba(255,255,255,.18) !important;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.45) !important;
+      border-radius: 12px;
+    }
+
+    /* Cuando hay hover sobre cualquier <li>, oculta el estilo del activo
+   para que no se vean dos elementos resaltados a la vez */
+body.menu-open #menu:has(li:hover) li.active{
+  background: transparent !important;
+  box-shadow: none !important;
+}
+    body.dark.menu-open #menu li:hover{
+      background: rgba(255,255,255,.12) !important;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.35) !important;
+    }
+
+    /* Activo */
+    #menu li.active{
+      background: transparent !important;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.28) !important;
+      border-radius: 12px;
+    }
+
+    /* En táctiles sin hover, no pintes nada */
+    @media (hover: none) {
+      #menu li:hover{
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+    }
+  `;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
+})();
+
 // --- Sección y menú: Gestionar recurrentes ---
 (function injectRecurrentManager(){
   const main = document.querySelector('main') || document.body;
@@ -625,6 +801,11 @@ const menu = document.getElementById("menu");
     <div id="recurManagerList" class="recur-list" style="gap:.6rem"></div>
   `;
   main.appendChild(section);
+    // (tras: main.appendChild(section);)
+  if (!menu) {
+    console.warn('[recurrentes] #menu no existe; creo la sección pero omito el item de menú');
+    return;
+  }
 
   // Item del menú
   const li = document.createElement('li');
@@ -636,8 +817,8 @@ const menu = document.getElementById("menu");
 
   // Navegación del item
   const go = () => {
-  document.querySelectorAll('main section').forEach(s => s.classList.add('oculto'));
-  section.classList.remove('oculto');
+  selectSection('seccionRecurrentes');
+  syncMenuActiveToVisible();
   closeMenu();
   (document.querySelector('main') || document.body).scrollIntoView({ behavior:'smooth', block:'start' });
   renderRecurrentManager();
@@ -647,7 +828,6 @@ const menu = document.getElementById("menu");
   li.addEventListener('click', go);
   li.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
 })();
-const secciones = document.querySelectorAll("main section");
 
 // Gráficos/histórico
 const selectMesHistorico = document.getElementById("selectMesHistorico");
@@ -659,6 +839,80 @@ const tituloGraficoDiario = document.getElementById("tituloGraficoDiario");
 const menuOverlay = document.createElement('div');
 menuOverlay.id = 'menuOverlay';
 document.body.appendChild(menuOverlay);
+
+// -------- Bottom Nav (móvil/tablet): crea/actualiza/borra --------
+function selectSection(seccionId){
+  document.querySelectorAll('main section').forEach(s => s.classList.add('oculto'));
+  document.getElementById(seccionId)?.classList.remove('oculto');
+  (document.querySelector('main') || document.body).scrollIntoView({ behavior:'smooth', block:'start' });
+
+  // refrescar gráficos si aplica
+  const mk = (filtrarMes?.value) || mesActual;
+  if (seccionId === "seccionGraficoPorcentaje"){ if (chartPorcentaje) chartPorcentaje.destroy(); renderGraficoPorcentaje(mk); }
+  if (seccionId === "seccionGraficoDiario"){ if (chartDiario) chartDiario.destroy(); setTituloGraficoDiario(mk); renderGraficoDiario(mk); }
+  if (seccionId === "seccionHistorico"){ if (chartHistorico) chartHistorico.destroy(); renderGraficoHistorico(); }
+
+  // marcar activo en la barra
+  document.querySelectorAll('#bottomNav button[data-target]').forEach(b => {
+  if (b.dataset.target === seccionId) b.setAttribute('aria-current','page');
+  else b.removeAttribute('aria-current');
+});
+  // marcar activo en el menú aunque vengas desde la bottom bar
+  syncMenuActiveToVisible();
+}
+
+function buildBottomNav(){
+  if (document.getElementById('bottomNav')) return;
+
+  const nav = document.createElement('nav');
+  nav.id = 'bottomNav';
+  nav.innerHTML = `
+    <button data-target="seccionFormulario" aria-current="page">
+      <span class="icon">🏠</span><span class="label">Inicio</span>
+    </button>
+    <button data-target="seccionGraficoPorcentaje">
+      <span class="icon">🥧</span><span class="label">% por cat.</span>
+    </button>
+    <button data-target="seccionGraficoDiario">
+      <span class="icon">📅</span><span class="label">Diario</span>
+    </button>
+    <button data-target="seccionHistorico">
+      <span class="icon">📈</span><span class="label">Histórico</span>
+    </button>
+    <button data-target="seccionRecurrentes">
+      <span class="icon">🔁</span><span class="label">Recurrentes</span>
+    </button>
+  `;
+  document.body.appendChild(nav);
+
+  // delegación de clicks
+  nav.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-target]');
+    if (!btn) return;
+    selectSection(btn.dataset.target);
+  });
+}
+
+function destroyBottomNav(){
+  document.getElementById('bottomNav')?.remove();
+}
+
+const _mqBottomNav = window.matchMedia('(max-width: 1024px)');
+function applyBottomNavMode(){
+  if (_mqBottomNav.matches){
+    document.body.classList.add('has-bottomnav');
+    buildBottomNav();
+  } else {
+    document.body.classList.remove('has-bottomnav');
+    destroyBottomNav();
+  }
+}
+if (_mqBottomNav.addEventListener) {
+  _mqBottomNav.addEventListener('change', applyBottomNavMode);
+} else if (_mqBottomNav.addListener) {
+  // Safari/WebKit antiguos
+  _mqBottomNav.addListener(applyBottomNavMode);
+}
 
 // ------- UI recordatorio de recurrentes (tarjeta compacta) -------
 function mountRecurCard(){
@@ -688,7 +942,7 @@ function mountRecurCard(){
 
   // Omitir TODOS + DESHACER
   document.getElementById("recurDismiss")?.addEventListener("click", () => {
-    const mk  = filtrarMes.value || mesActual;
+    const mk = (filtrarMes?.value) || mesActual;
     const due = getDueRecurrents(mk);
     const skipped = due.map(d => d.key);
     if (!skipped.length){ hideRecurCard(); return; }
@@ -720,6 +974,14 @@ document.addEventListener("DOMContentLoaded", mountRecurCard);
 function appConfirm({ title = "Confirmar", message = "", confirmText = "Aceptar", cancelText = "Cancelar", variant = "primary" } = {}) {
   return new Promise((resolve) => {
     const root = document.getElementById("appConfirm");
+
+    // 🔒 Fallback seguro si no existe el modal en el HTML
+    if (!root) {
+      const ok = window.confirm(`${title}\n\n${message}`);
+      resolve(!!ok);
+      return;
+    }
+
     const titleEl = document.getElementById("appConfirmTitle");
     const msgEl = document.getElementById("appConfirmMsg");
     const btnOk = document.getElementById("appConfirmOk");
@@ -781,15 +1043,15 @@ if (presupuesto) presupuestoInput.value = presupuesto;
 // Dark mode persistente
 if (localStorage.getItem("darkMode") === "true") {
   body.classList.add("dark");
-  darkIcon.textContent = "☀️";
+  if (darkIcon) darkIcon.textContent = "☀️";
 } else {
-  darkIcon.textContent = "🌙";
+  if (darkIcon) darkIcon.textContent = "🌙";
 }
 
 document.addEventListener('keydown', (e) => {
   const mod = e.ctrlKey || e.metaKey;
   if (mod && e.key.toLowerCase() === 'enter'){
-    if (form) { e.preventDefault(); form.requestSubmit(); }
+    if (form) { e.preventDefault(); (form.requestSubmit ? form.requestSubmit() : form.submit()); }
   }
   if (mod && e.key.toLowerCase() === 'k'){
     if (buscarCategoria){ e.preventDefault(); buscarCategoria.focus(); buscarCategoria.select?.(); }
@@ -803,13 +1065,13 @@ const headerScrollCheck = () => {
   if (window.scrollY > 0) headerEl.classList.add('is-scrolled');
   else headerEl.classList.remove('is-scrolled');
 };
-window.addEventListener('scroll', headerScrollCheck);
+window.addEventListener('scroll', headerScrollCheck, { passive:true });
 headerScrollCheck();
 
 if (addFirstBtn) {
   addFirstBtn.addEventListener("click", () => {
-    secciones.forEach(s => s.classList.add("oculto"));
-    document.getElementById("seccionFormulario").classList.remove("oculto");
+    document.querySelectorAll("main section").forEach(s => s.classList.add("oculto"));
+    document.getElementById("seccionFormulario")?.classList.remove("oculto");
     if (estadoVacio) estadoVacio.hidden = true;
     (categoriaInput || tipoInput || importeInput || fechaInput)?.focus?.();
     markOnboardStep('primerGasto');
@@ -906,32 +1168,44 @@ function renderCatBudgets(){
     const bar = item.querySelector(".progress__bar");
     catBudgetList.appendChild(item);
 
-    // 1) Estado anterior (para animar también al bajar)
-    const prevPct    = _lastCatPct.has(cat) ? _lastCatPct.get(cat) : 0;
-    const prevStatus = _lastCatStatus.get(cat) || "ok";
+    // --- Estado previo memorizado ---
+const prevPct    = _lastCatPct.has(cat) ? _lastCatPct.get(cat) : 0;
+const prevStatus = _lastCatStatus.get(cat) || "ok";
 
-    // 2) Pintamos el estado anterior SIN transición
-    bar.style.transition = "none";
-    bar.classList.remove("ok","warn","over");
-    bar.classList.add(prevStatus);
-    bar.style.width = `${prevPct}%`;
+/* 1) Pinta el “antes” sin transición */
+bar.style.transition = "none";
+bar.classList.remove("ok","warn","over");
+bar.classList.add(prevStatus);
+bar.style.width = `${prevPct}%`;
 
-    // 3) Dos frames para asegurar el “before” está pintado y luego animar al “after”
-    requestAnimationFrame(() => {
-      bar.style.transition = "";
-      requestAnimationFrame(() => {
-        bar.classList.remove("ok","warn","over");
-        bar.classList.add(status);
-        bar.style.width = `${pct}%`;
-      });
-    });
+/* 2) Fuerza reflow para que el “antes” se quede aplicado */
+void bar.offsetWidth;
 
-    // 4) Guardamos el nuevo “anterior” al terminar la animación
-    bar.addEventListener("transitionend", () => {
-      _lastCatPct.set(cat, pct);
-      _lastCatStatus.set(cat, status);
-    }, { once:true });
+/* 3) Activa transición y pinta el “después” (una sola animación) */
+const wantsMotion = !(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+bar.style.transition = wantsMotion ? "width .45s ease, background-color .45s ease" : "none";
+bar.classList.remove("ok","warn","over");
+bar.classList.add(status);
+bar.style.width = `${pct}%`;
+
+/* 4) Memoriza ya el nuevo estado (evita re-animaciones “dobles”) */
+_lastCatPct.set(cat, pct);
+_lastCatStatus.set(cat, status);
+
+if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+  // Sin transición: memoriza ya
+  updateMemo();
+} else {
+  bar.addEventListener('transitionend', updateMemo, { once:true });
+}
   });
+}
+
+function refreshDashboards(monthKey){
+  renderGraficoPorcentaje(monthKey);
+  renderGraficoDiario(monthKey);
+  renderGraficoHistorico();
+  renderCatBudgets();
 }
 
 // Eventos del panel
@@ -1008,6 +1282,31 @@ function esc(s = "") {
     { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[m]
   ));
 }
+// --- Utilidades CSV ---
+function csvEscape(value){
+  // Convierte null/undefined a "", escapa comillas dobles y envuelve en comillas
+  return `"${String(value ?? '').replace(/"/g, '""')}"`;
+}
+
+function round2(n){ return Math.round((Number(n) || 0) * 100) / 100; }
+
+function findBudgetKey(cat){
+  const target = normalizeStr(capitalizeFirst(cat || ''));
+  for (const k of Object.keys(catBudgets || {})){
+    if (normalizeStr(k) === target) return k;
+  }
+  return null;
+}
+
+function syncMenuActiveToVisible(){
+  if (!menu) return;
+  const visible = document.querySelector('main section:not(.oculto)');
+  const id = visible?.id || null;
+  menu.querySelectorAll('li').forEach(li => {
+    li.classList.toggle('active', id && li.dataset.section === id);
+  });
+}
+
 function normalizeStr(s = "") {
   return String(s)
     .normalize("NFD")
@@ -1210,7 +1509,6 @@ function dueDateForMonthly(r, monthKey){
 
 function dueDatesForWeekly(r, monthKey){
   const [y, m] = monthKey.split('-').map(Number);
-  const firstOfMonth = new Date(y, m-1, 1);
   const start = new Date(r.startDate);
   if (monthKey < monthKeyOf(r.startDate)) return [];
   const targetDow = start.getDay();
@@ -1360,7 +1658,7 @@ function applyDueRecurrentsForMonth(monthKey){
 }
 
 function checkRecurrentsReminder(){
-  const mk = filtrarMes.value || mesActual;
+  const mk = (filtrarMes?.value) || mesActual;
   const due = getDueRecurrents(mk);
   if (due.length) showRecurCard(due); else hideRecurCard();
   // 👇 Puntito en el icono del menú
@@ -1423,12 +1721,15 @@ function renderGraficoPorcentaje(mesFiltrado) {
     });
 
   const canvas = document.getElementById("graficoGastos");
+    if (typeof Chart === 'undefined') { drawNoDataMessage(canvas, "Cargando gráficos…"); return; }
   canvas.style.height = '400px';
   canvas.style.maxHeight = '400px';
 
   const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width;
-  canvas.height = rect.height;
+  const w = Math.max(300, rect.width || canvas.clientWidth || 300);
+  const h = Math.max(200, rect.height || 400);
+  canvas.width = w;
+  canvas.height = h;
   const ctx = canvas.getContext("2d");
 
   if (Object.keys(categorias).length === 0) {
@@ -1493,18 +1794,19 @@ function renderGraficoDiario(mesFiltrado) {
   const sec = document.getElementById("seccionGraficoDiario");
   if (sec && sec.classList.contains("oculto")) return;
 
-  const [anio, mesNum] = (mesFiltrado || mesActual).split("-").map(Number);
+  const month = mesFiltrado || mesActual;              // 👈 unifica
+  const [anio, mesNum] = month.split("-").map(Number);
   const diasMes = new Date(anio, mesNum, 0).getDate();
   const labels = Array.from({ length: diasMes }, (_, i) => i + 1);
   const datosGastos = Array(diasMes).fill(0);
   const datosBeneficios = Array(diasMes).fill(0);
 
-  const gastosAMostrar = mesFiltrado === mesActual
+  const gastosAMostrar = month === mesActual
     ? gastos
-    : JSON.parse(localStorage.getItem(`gastos_${mesFiltrado}`)) || [];
+    : JSON.parse(localStorage.getItem(`gastos_${month}`)) || [];
 
   gastosAMostrar.forEach(g => {
-    if (g.fecha && g.fecha.startsWith(mesFiltrado)) {
+    if (g.fecha && g.fecha.startsWith(month)) {        // 👈 aquí también
       const dia = parseInt(g.fecha.slice(-2), 10) - 1;
       if (dia >= 0 && dia < diasMes) {
         if (g.tipo === "gasto") datosGastos[dia] += g.importe;
@@ -1514,8 +1816,14 @@ function renderGraficoDiario(mesFiltrado) {
   });
 
   const canvas = document.getElementById("graficoDiario");
+    if (typeof Chart === 'undefined') { drawNoDataMessage(canvas, "Cargando gráficos…"); return; }
   canvas.style.maxHeight = "400px";
   const ctx = canvas.getContext("2d");
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.max(300, rect.width || canvas.clientWidth || 300);
+  const h = Math.max(200, rect.height || 400);
+  canvas.width = w;
+  canvas.height = h;
 
   const noData = datosGastos.every(v => v === 0) && datosBeneficios.every(v => v === 0);
   if (noData) {
@@ -1618,18 +1926,24 @@ function renderGraficoHistorico() {
 
   graficoHistoricoCanvas.style.maxHeight = "400px";
   const ctx = graficoHistoricoCanvas.getContext("2d");
-  const sel = selectMesHistorico.value || "todos";
+    if (typeof Chart === 'undefined') { drawNoDataMessage(graficoHistoricoCanvas, "Cargando gráficos…"); return; }
+    const rect = graficoHistoricoCanvas.getBoundingClientRect();
+    const w = Math.max(300, rect.width || graficoHistoricoCanvas.clientWidth || 300);
+    const h = Math.max(200, rect.height || 400);
+    graficoHistoricoCanvas.width = w;
+    graficoHistoricoCanvas.height = h;
+    const sel = selectMesHistorico.value || "todos";
 
   if (chartHistorico) chartHistorico.destroy();
 
   const showNoData = () => {
-    drawNoDataMessage(graficoHistoricoCanvas, "No existen datos todavía");
-    if (balanceHistorico) {
-      balanceHistorico.textContent = "";
-      balanceHistorico.className = "";
-      balanceHistorico.style.display = "none";
-    }
-  };
+  drawNoDataMessage(graficoHistoricoCanvas, "No existen datos todavía");
+  if (balanceHistorico) {
+    balanceHistorico.textContent = "";
+    balanceHistorico.style.display = "none";
+    balanceHistorico.classList.remove('balance-verde','balance-amarillo','balance-naranja','balance-rojo');
+  }
+};
 
   const showBalance = (text, val) => {
     if (!balanceHistorico) return;
@@ -1699,20 +2013,43 @@ function renderGraficoHistorico() {
   }
 }
 
+const reflowChartsVisible = () => {
+  const mk = (filtrarMes?.value) || mesActual;
+
+  const secPie = document.getElementById('seccionGraficoPorcentaje');
+  if (secPie && !secPie.classList.contains('oculto')) {
+    if (chartPorcentaje) chartPorcentaje.resize();
+    else renderGraficoPorcentaje(mk);
+  }
+
+  const secDiario = document.getElementById('seccionGraficoDiario');
+  if (secDiario && !secDiario.classList.contains('oculto')) {
+    if (chartDiario) chartDiario.resize();
+    else { setTituloGraficoDiario(mk); renderGraficoDiario(mk); }
+  }
+
+  const secHist = document.getElementById('seccionHistorico');
+  if (secHist && !secHist.classList.contains('oculto')) {
+    if (chartHistorico) chartHistorico.resize();
+    else renderGraficoHistorico();
+  }
+};
+
+window.addEventListener('resize', (() => {
+  let t; 
+  return () => { clearTimeout(t); t = setTimeout(reflowChartsVisible, 150); };
+})(), { passive:true });
+
 // -------------------- Render Tabla --------------------
 function renderTabla() {
   tabla.innerHTML = "";
-  let total = 0;
-  let gastosSum = 0;
+  let total = 0, gastosSum = 0;
 
   const filtroTerm = normalizeStr(buscarCategoria.value || "");
-  const filtroMes  = filtrarMes.value || mesActual;
-
-  // Asegura que el estado vacío empieza oculto en cada render
+  const filtroMes  = (filtrarMes?.value) || mesActual;
   if (estadoVacio) estadoVacio.hidden = true;
 
-  const gastosAMostrar = (filtroMes === mesActual)
-    ? gastos
+  const gastosAMostrar = (filtroMes === mesActual) ? gastos
     : (JSON.parse(localStorage.getItem(`gastos_${filtroMes}`)) || []);
 
   const gastosFiltrados = gastosAMostrar.filter(g => {
@@ -1724,16 +2061,14 @@ function renderTabla() {
 
   // ---- Estado vacío
   if (gastosFiltrados.length === 0) {
-    tabla.innerHTML = "";
-
-    if ((buscarCategoria.value || "").trim()) {
-      emptyStateMsg.textContent = `No hay resultados para “${buscarCategoria.value}”.`;
-    } else if ((gastosAMostrar || []).length === 0) {
-      emptyStateMsg.textContent = "Todavía no hay movimientos este mes.";
-    } else {
-      emptyStateMsg.textContent = "No hay movimientos que coincidan.";
-    }
-
+    // 👇 ya está vacío arriba; no hace falta volver a vaciar
+    // tabla.innerHTML = "";  <-- elimina esta línea en tu versión
+    emptyStateMsg.textContent =
+      (buscarCategoria.value || "").trim()
+        ? `No hay resultados para “${buscarCategoria.value}”.`
+        : ((gastosAMostrar || []).length === 0
+            ? "Todavía no hay movimientos este mes."
+            : "No hay movimientos que coincidan.");
     if (estadoVacio) estadoVacio.hidden = false;
 
     totalEl.textContent = `Balance: 0.00 €`;
@@ -1741,32 +2076,24 @@ function renderTabla() {
     alertaPresupuesto.textContent = "";
     alertaPresupuesto.classList.remove("show");
 
-    renderGraficoPorcentaje(filtroMes);
-    renderGraficoDiario(filtroMes);
-    renderGraficoHistorico();
-    renderCatBudgets();
+    requestAnimationFrame(() => refreshDashboards(filtroMes));
+    populateSelectHistorico();
     updateSortUI();
     return;
-  } else {
-    if (estadoVacio) estadoVacio.hidden = true;
   }
 
-  // ---- Render filas
+  // ---- Render filas (con fragment)
+  const frag = document.createDocumentFragment();
   let rowCount = 0;
-  // DONDE AHORA PONE:
-    gastosOrdenados.forEach((gasto) => {
+
+  gastosOrdenados.forEach((gasto) => {
     const fila = document.createElement("tr");
     fila.classList.add("fade-in");
     fila.dataset.id = gasto.id;
-
-    if (estadoVacio) estadoVacio.hidden = true;
-
-    if (gasto.tipo === "gasto") fila.classList.add("gasto");
-    else fila.classList.add("beneficio");
+    fila.classList.add(gasto.tipo === "gasto" ? "gasto" : "beneficio");
 
     const tipoLabel = gasto.tipo === "gasto" ? "Gasto" : "Beneficio";
     const categoriaLabel = capitalizeFirst((gasto.categoria || "").trim());
-
     const keyCat = categoriaLabel || "Sin categoría";
     const colorCat = colorForCategory(keyCat);
 
@@ -1777,19 +2104,70 @@ function renderTabla() {
         ${gasto.tipo === "gasto" ? "-" : ""}${gasto.importe.toFixed(2)} €
       </td>
       <td data-label="Fecha">${gasto.fecha}</td>
-      <td class="acciones">
-         <button class="editar"   data-id="${gasto.id}" data-month="${gasto.fecha.slice(0,7)}" aria-label="Editar" title="Editar">✏️</button>
-         <button class="eliminar" data-id="${gasto.id}" data-month="${gasto.fecha.slice(0,7)}" aria-label="Eliminar" title="Eliminar">🗑️</button>
-      </td>
     `;
-    tabla.appendChild(fila);
-    makeRowSwipeable(fila, gasto);
+    const tdAcc = document.createElement('td');
+    tdAcc.className = 'acciones';
+
+    const bEdit = document.createElement('button');
+bEdit.className = 'editar';
+bEdit.type = 'button';
+bEdit.title = 'Editar'; 
+bEdit.setAttribute('aria-label','Editar');
+bEdit.dataset.id = String(gasto.id);
+bEdit.dataset.month = gasto.fecha.slice(0,7);
+bEdit.textContent = '✏️';
+
+const bDel = document.createElement('button');
+bDel.className = 'eliminar';
+bDel.type = 'button';
+bDel.title = 'Eliminar'; 
+bDel.setAttribute('aria-label','Eliminar');
+bDel.dataset.id = String(gasto.id);
+bDel.dataset.month = gasto.fecha.slice(0,7);
+bDel.textContent = '🗑️';
+
+/* Evita que el gesto de swipe intercepte el click de los botones */
+[bEdit, bDel].forEach(b => {
+  b.addEventListener('pointerdown', e => e.stopPropagation(), { passive: true });
+  b.addEventListener('click', e => e.stopPropagation());
+});
+
+bEdit.addEventListener('click', () => {
+  const id = bEdit.dataset.id;
+  const month = bEdit.dataset.month || filtrarMes.value || mesActual;
+  editarGastoPorId(id, month);
+});
+
+bDel.addEventListener('click', async () => {
+  const id = bDel.dataset.id;
+  const month = bDel.dataset.month || filtrarMes.value || mesActual;
+
+  // Confirm antes de eliminar
+  const ok = await appConfirm({
+    title: "Eliminar registro",
+    message: "¿Seguro que quieres eliminar este movimiento?",
+    confirmText: "Eliminar",
+    cancelText: "Cancelar",
+    variant: "danger"
+  });
+  if (!ok) return;
+  eliminarGastoPorId(id, month);
+});
+
+tdAcc.append(bEdit, bDel);
+    fila.appendChild(tdAcc);
+
+    // 👉 Swipe solo en móvil/tablet (ahorras oyentes en desktop)
+    if (isSwipeEnabled()) makeRowSwipeable(fila, gasto);
+
+    frag.appendChild(fila);
     rowCount++;
 
     if (gasto.tipo === "gasto") { total -= gasto.importe; gastosSum += gasto.importe; }
     else { total += gasto.importe; }
   });
 
+  tabla.appendChild(frag);
   if (estadoVacio) estadoVacio.hidden = rowCount > 0;
 
   totalEl.textContent = `Balance: ${total.toFixed(2)} €`;
@@ -1808,18 +2186,8 @@ function renderTabla() {
   }
 
   if (filtroMes === mesActual) localStorage.setItem("gastos", JSON.stringify(gastos));
-
-  renderGraficoPorcentaje(filtroMes);
-  renderGraficoDiario(filtroMes);
-  renderGraficoHistorico();
-  renderCatBudgets();
-
-  if (estadoVacio) {
-    const hayFilas = tabla.querySelectorAll('tr').length > 0;
-    estadoVacio.hidden = hayFilas;
-    estadoVacio.style.display = hayFilas ? 'none' : '';
-  }
-   updateSortUI();
+  requestAnimationFrame(() => refreshDashboards(filtroMes));
+  updateSortUI();
 }
 
 // --- Scroll helper: desplaza hasta la fila por ID y la resalta ---
@@ -1838,85 +2206,119 @@ const SWIPE_MAX = 96;           // límite visual de arrastre
 const SWIPE_ANGLE_MAX = 30;     // grados: si < 30°, tratamos como gesto horizontal
 
 function makeRowSwipeable(row, gasto){
-  // no activar swipe si se inicia en un botón
-  const isButton = (el) => !!el.closest('button');
-
-  let startX=0, startY=0, dx=0, dy=0, active=false, decided=false, pointerId=null;
+  if (!row) return;
   const monthKey = String(gasto.fecha || '').slice(0,7);
 
-  const reset = () => {
-    row.style.transition = 'transform .18s ease';
+  const SWIPE_THRESHOLD = 48;  // px para confirmar
+  const SWIPE_MAX = 96;        // límite visual de arrastre
+  const SWIPE_ANGLE_MAX = 30;  // grados (horizontal < 30°)
+
+  let startX=0, startY=0, dx=0, dy=0, active=false, decided=false, moved=false;
+
+  function reset(animated = true){
+    row.style.transition = animated ? 'transform .18s ease' : '';
     row.style.transform = 'translateX(0)';
-    row.classList.remove('swiping','show-left','show-right');
-    setTimeout(() => { row.style.transition = ''; }, 180);
-  };
+    row.classList.remove('swiping','show-left','show-right','swipeable');
+    if (animated) setTimeout(() => { row.style.transition = ''; }, 180);
+  }
 
-  const onDown = (e) => {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    if (isButton(e.target)) return;
+  function onStart(x, y){
+    startX = x; startY = y;
+    dx = 0; dy = 0;
+    moved = false;
+    decided = false;
+    active = true;
+    row.classList.add('swiping','swipeable');
+    row.style.transition = ''; // sin transición durante el arrastre
+  }
 
-    active = true; decided = false; dx = 0; dy = 0;
-    startX = e.clientX; startY = e.clientY; pointerId = e.pointerId;
-    row.classList.add('swipeable');
-    row.setPointerCapture?.(pointerId);
-  };
-
-  const onMove = (e) => {
+  function onMove(x, y, preventDefault){
     if (!active) return;
-
-    dx = e.clientX - startX;
-    dy = e.clientY - startY;
+    dx = x - startX;
+    dy = y - startY;
 
     if (!decided){
       const absx = Math.abs(dx), absy = Math.abs(dy);
-      if (absx < 8 && absy < 8) return; // ruido
+      // no activar swipe hasta que se mueva algo en X y no sea gesto vertical
+      if (!moved && (absx < 6 || absx < absy)) return;
+      moved = true;
 
       const angle = Math.atan2(absy, absx) * 180 / Math.PI;
       if (angle < SWIPE_ANGLE_MAX){
         decided = true;
-        row.classList.add('swiping');
-        e.preventDefault();             // bloquea scroll vertical durante el gesto horizontal
+        preventDefault?.(); // bloquea scroll vertical
       } else {
-        // Es más vertical: cancelar y dejar que el scroll haga lo suyo
-        active = false;
-        row.releasePointerCapture?.(pointerId);
+        active = false;     // gesto vertical → cancela
+        reset(false);
         return;
       }
     }
 
     const t = Math.max(-SWIPE_MAX, Math.min(SWIPE_MAX, dx));
     row.style.transform = `translateX(${t}px)`;
-    row.classList.toggle('show-left',  t < -16);
-    row.classList.toggle('show-right', t >  16);
-  };
-
-  const onEnd = async (e) => {
-  if (!active) return;
-  active = false;
-  row.releasePointerCapture?.(pointerId);
-
-  const finalDx = dx;
-  row.classList.remove('swiping');
-
-  if (finalDx <= -SWIPE_THRESHOLD){
-    // Izquierda => ELIMINAR con modal de confirmación
-    reset(); // volvemos la fila a su sitio antes de abrir el modal
-    await eliminarGastoPorId(gasto.id, monthKey);
-  } else if (finalDx >= SWIPE_THRESHOLD){
-    // Derecha => EDITAR (tu editar ya abre confirm)
-    reset();
-    await editarGastoPorId(gasto.id, monthKey);
-  } else {
-    reset();
+    row.classList.toggle('show-left',  t < -16); // pista eliminar
+    row.classList.toggle('show-right', t >  16); // pista editar
   }
-};
 
-  row.addEventListener('pointerdown', onDown);
-  row.addEventListener('pointermove', onMove);
-  row.addEventListener('pointerup', onEnd);
-  row.addEventListener('pointercancel', () => { active=false; reset(); });
+  async function onEnd(){
+    if (!active) return;
+    active = false;
+    row.classList.remove('swiping');
+
+    if (dx <= -SWIPE_THRESHOLD){
+      // ← eliminar con confirm
+      reset(true);
+      const ok = await appConfirm({
+        title: "Eliminar registro",
+        message: "¿Seguro que quieres eliminar este movimiento?",
+        confirmText: "Eliminar",
+        cancelText: "Cancelar",
+        variant: "danger"
+      });
+      if (ok) eliminarGastoPorId(gasto.id, monthKey);
+      return;
+    }
+
+    if (dx >= SWIPE_THRESHOLD){
+      // → editar
+      reset(true);
+      await editarGastoPorId(gasto.id, monthKey);
+      return;
+    }
+
+    // click sin swipe → sin animación (evita “salto”)
+    reset(false);
+  }
+
+  const supportsPointer = 'onpointerdown' in window;
+
+  if (supportsPointer){
+    row.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (e.target.closest('button')) return; // no activar swipe si clicas un botón
+      onStart(e.clientX, e.clientY);
+      row.setPointerCapture?.(e.pointerId);
+    });
+    row.addEventListener('pointermove', (e) => {
+      onMove(e.clientX, e.clientY, () => e.preventDefault());
+    }, { passive:false });
+    row.addEventListener('pointerup', onEnd);
+    row.addEventListener('pointercancel', () => { active=false; reset(false); });
+  } else {
+    // Fallback táctil (iOS viejos)
+    row.addEventListener('touchstart', (e) => {
+      if (e.target.closest('button')) return;
+      const t = e.changedTouches[0];
+      onStart(t.clientX, t.clientY);
+    }, { passive:true });
+    row.addEventListener('touchmove', (e) => {
+      const t = e.changedTouches[0];
+      onMove(t.clientX, t.clientY, () => e.preventDefault());
+    }, { passive:false });
+    row.addEventListener('touchend', onEnd, { passive:true });
+    row.addEventListener('touchcancel', () => { active=false; reset(false); }, { passive:true });
+  }
 }
-
 // Eliminar SIN modal (usado por el swipe a la izquierda)
 function eliminarGastoRapido(id, monthKey){
   const ref = getMonthArrayRef(monthKey);
@@ -1974,7 +2376,7 @@ function getMonthArrayRef(monthKey){
 async function eliminarGastoPorId(id, monthKey) {
   const ok = await appConfirm({
     title: "Eliminar movimiento",
-    message: "Esta acción no se puede deshacer. ¿Quieres eliminar este movimiento?",
+    message: "Se eliminará el movimiento. Podrás deshacerlo desde el aviso.",
     confirmText: "Eliminar",
     cancelText: "Cancelar",
     variant: "danger"
@@ -2075,14 +2477,16 @@ async function editarGastoPorId(id, monthKey) {
 
 
 // Delegación de eventos para botones editar/eliminar
-tabla.addEventListener('click', e => {
-  const btn = e.target.closest('button');
-  if (!btn) return;
-  const id = btn.dataset.id;
-  const month = btn.dataset.month || (filtrarMes.value || mesActual);
-  if (btn.classList.contains('editar')) editarGastoPorId(id, month);
-  else if (btn.classList.contains('eliminar')) eliminarGastoPorId(id, month);
-});
+if (tabla) {
+  tabla.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const month = btn.dataset.month || (filtrarMes.value || mesActual);
+    if (btn.classList.contains('editar')) editarGastoPorId(id, month);
+    else if (btn.classList.contains('eliminar')) eliminarGastoPorId(id, month);
+  });
+}
 
 // -------------------- Formulario --------------------
 form.addEventListener("submit", async e => {
@@ -2110,29 +2514,58 @@ form.addEventListener("submit", async e => {
   if (!categoria) { showToast("La categoría no puede estar vacía.", { type: "error" }); return; }
   if (isNaN(importe) || importe <= 0) { showToast("El importe debe ser un número mayor que 0.", { type: "error" }); return; }
 
-  // ⚠️ AVISO si el gasto supera el presupuesto de su categoría en ese mes
-  if (tipo === "gasto" && catBudgets && catBudgets[catKey]) {
-    const monthKey = fecha.slice(0, 7);                            // p.ej. "2025-09"
-    const spentMap = getSpentByCategory(monthKey);
-    const used = Number(spentMap[catKey] || 0);
-    const lim  = Number(catBudgets[catKey] || 0);
-    const willBe = used + importe;
-
-    if (willBe > lim) {
+  // ⚠️ Confirmación por presupuesto MENSUAL (global) antes de guardar
+// ⚠️ Confirmación por presupuesto MENSUAL (global) antes de guardar
+if (tipo === 'gasto') {
+  const presuMensual = parseFloat(presupuestoInput?.value || localStorage.getItem("presupuesto") || "0") || 0;
+  if (presuMensual > 0) {
+    const monthKey = fecha.slice(0, 7);
+    const t = totalsForMonth(monthKey);
+    const willGastos = (Number(t.gastos) || 0) + (Number(importe) || 0);
+    if (willGastos > presuMensual) {
       const [yy, mm] = monthKey.split("-").map(Number);
       const etiquetaMes = new Date(yy, mm - 1, 1)
         .toLocaleDateString("es-ES", { month: "long", year: "numeric" });
-
-      const ok = await appConfirm({
-        title: "Presupuesto superado",
-        message: `Al introducir este gasto, tu presupuesto mensual en ${catKey} se verá superado para ${etiquetaMes} (${willBe.toFixed(2)}€ / ${lim.toFixed(2)}€). ¿Estás seguro de que deseas añadirlo?`,
-        confirmText: "Añadir de todas formas",
+      const okMes = await appConfirm({
+        title: "Presupuesto mensual superado",
+        message: `Con este gasto superarías tu presupuesto mensual global en ${etiquetaMes} (${willGastos.toFixed(2)}€ / ${presuMensual.toFixed(2)}€). ¿Añadir igualmente?`,
+        confirmText: "Añadir",
         cancelText: "Cancelar",
         variant: "danger"
       });
-      if (!ok) return;
+      if (!okMes) return;
     }
   }
+}
+
+  // ⚠️ AVISO si el gasto supera el presupuesto de su categoría en ese mes
+  const budgetKey = (tipo === 'gasto') ? findBudgetKey(categoria) : null;
+
+if (budgetKey) {
+  const monthKey = fecha.slice(0, 7);
+  const spentMap = getSpentByCategory(monthKey);
+  const used = Number(
+    spentMap[budgetKey] ??
+    spentMap[capitalizeFirst(budgetKey)] ?? 0
+  );
+  const lim = Number(catBudgets[budgetKey] || 0);
+  const willBe = used + (Number(importe) || 0);
+
+  if (willBe > lim) {
+    const [yy, mm] = monthKey.split("-").map(Number);
+    const etiquetaMes = new Date(yy, mm - 1, 1)
+      .toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+
+    const ok = await appConfirm({
+      title: "Presupuesto superado",
+      message: `Al introducir este gasto, tu presupuesto mensual en ${capitalizeFirst(budgetKey)} se verá superado para ${etiquetaMes} (${willBe.toFixed(2)}€ / ${lim.toFixed(2)}€). ¿Añadir igualmente?`,
+      confirmText: "Añadir",
+      cancelText: "Cancelar",
+      variant: "danger"
+    });
+    if (!ok) return;
+  }
+}
 
   // Crear item y guardar en el MES correcto
   const newId = generarId();
@@ -2154,10 +2587,23 @@ form.addEventListener("submit", async e => {
     saveRecurrents();
 
     // Marca como "aplicado" el mes donde nace la regla (no recordar para el mes de inicio)
-    const mk = fecha.slice(0, 7);
-    const firstDate = dueDateForMonthly(rule, mk); // ajusta a fin de mes si procede
-    recurrentsApplied.add(`${rid}|${firstDate}`);
-    saveRecurrentsApplied();
+    // tras crear `rule` (rid, tipo, categoria, importe, startDate = fecha, freq)
+const mk = fecha.slice(0, 7);
+let firstDate = null;
+
+if (rule.freq === "semanal") {
+  // El startDate es el propio primer vencimiento
+  firstDate = fecha;
+} else if (rule.freq === "anual") {
+  firstDate = dueDateForYearly(rule, mk);     // mismo mes que startDate
+} else { // mensual (por defecto)
+  firstDate = dueDateForMonthly(rule, mk);
+}
+
+if (firstDate) {
+  recurrentsApplied.add(`${rid}|${firstDate}`);
+  saveRecurrentsApplied();
+}
   }
 
   // Desmarcar y deshabilitar selector para la siguiente entrada
@@ -2167,7 +2613,7 @@ if (recurrenteChk){
 }
 
   // Ajustar filtros y UI
-  filtrarMes.value = fecha.slice(0, 7);
+  if (filtrarMes) filtrarMes.value = fecha.slice(0, 7);
   buscarCategoria.value = "";
 
   tipoInput.value = "gasto";
@@ -2190,6 +2636,11 @@ function isMobileLike(){
   return (window.matchMedia?.('(max-width: 768px)').matches) || ('ontouchstart' in window);
 }
 
+
+function isSwipeEnabled(){
+  return (navigator.maxTouchPoints || 0) > 0; // solo táctiles reales
+}
+
 function injectFAB(){
   if (document.getElementById('fabAdd')) return;
   const btn = document.createElement('button');
@@ -2200,8 +2651,6 @@ function injectFAB(){
   btn.title = 'Añadir movimiento (N)';
   btn.textContent = '+';
   document.body.appendChild(btn);
-
-  document.documentElement.style.setProperty('--toastBottom', 'calc(16px + 56px + 12px)');
 
   btn.addEventListener('click', () => {
     if (isMobileLike()) openQuickAddSheet();
@@ -2285,16 +2734,7 @@ function injectQuickAddSheet(){
     if (e.key === 'Escape'){ e.preventDefault(); closeQA(); }
   });
 
-  formQA.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const cat = String(inpCat.value || '').replace(/\s+/g,' ').trim();
-    const imp = parseFloat(inpImp.value);
-    const tipoSel = inpTipo.value === 'beneficio' ? 'beneficio' : 'gasto';
-
-    if (!cat){ showToast('La categoría no puede estar vacía.', { type:'error' }); return; }
-    if (!isFinite(imp) || imp <= 0){ showToast('Importe inválido.', { type:'error' }); return; }
-
-    // Focus trap: recorrer solo por los controles del sheet con Tab/Shift+Tab
+  // Focus trap: Tab y Shift+Tab dentro del sheet
 (() => {
   const focusablesSel = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
   const trap = (e) => {
@@ -2312,6 +2752,15 @@ function injectQuickAddSheet(){
   sheet.addEventListener('keydown', trap);
 })();
 
+  formQA.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const cat = String(inpCat.value || '').replace(/\s+/g,' ').trim();
+    const imp = parseFloat(inpImp.value);
+    const tipoSel = inpTipo.value === 'beneficio' ? 'beneficio' : 'gasto';
+
+    if (!cat){ showToast('La categoría no puede estar vacía.', { type:'error' }); return; }
+    if (!isFinite(imp) || imp <= 0){ showToast('Importe inválido.', { type:'error' }); return; }
+
     // Volcamos al formulario "grande" y reutilizamos tu flujo
     tipoInput.value = tipoSel;
     categoriaInput.value = cat;
@@ -2325,7 +2774,7 @@ function injectQuickAddSheet(){
     if (recurrenteChk){ recurrenteChk.checked = false; if (recurrenteFreq) recurrenteFreq.disabled = true; }
 
     closeQA();
-    form.requestSubmit(); // dispara tu submit con validaciones, toasts, presupuestos, etc.
+    (form.requestSubmit ? form.requestSubmit() : form.submit());
   });
 
   // Exponer funciones
@@ -2354,6 +2803,7 @@ document.addEventListener('keydown', (e) => {
 
 // Montaje inicial
 injectFAB();
+applyBottomNavMode();
 
 // Generador de IDs únicos
 function generarId() {
@@ -2361,7 +2811,7 @@ function generarId() {
 }
 
 // -------------------- Presupuesto --------------------
-presupuestoInput.addEventListener("change", () => {
+  presupuestoInput?.addEventListener("change", () => {
   presupuesto = parseFloat(presupuestoInput.value) || 0;
   localStorage.setItem("presupuesto", presupuesto);
   renderTabla();
@@ -2370,8 +2820,8 @@ presupuestoInput.addEventListener("change", () => {
 });
 
 // -------------------- Filtros --------------------
-buscarCategoria.addEventListener("input", renderTabla);
-filtrarMes.addEventListener("input", () => {
+buscarCategoria?.addEventListener("input", renderTabla);
+filtrarMes?.addEventListener("input", () => {
   _lastCatPct.clear();
   _lastCatStatus.clear();
   renderTabla();
@@ -2405,19 +2855,25 @@ function combinarGastos() {
   return todosGastos;
 }
 
-exportCSVBtn.addEventListener("click", () => {
-  let csv = "Tipo,Categoría,Importe,Fecha\n";
-  combinarGastos().forEach(g => { csv += `${g.tipo},${g.categoria},${g.importe},${g.fecha}\n`; });
-  const blob = new Blob([csv], { type: "text/csv" });
+exportCSVBtn?.addEventListener("click", () => {
+  const SEP = (1.1).toLocaleString().includes(",") ? ";" : ",";
+  const lines = [ ["Tipo","Categoría","Importe","Fecha"].join(SEP) ];
+
+  combinarGastos().forEach(g => {
+    lines.push([ g.tipo, g.categoria, g.importe, g.fecha ].map(csvEscape).join(SEP));
+  });
+
+  const csv = lines.join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "gastos.csv";
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  showToast("CSV exportado", { type: "info", duration: 1600 });
+  showToast("CSV exportado", { type:"info", duration:1600 });
 });
 
-exportJSONBtn.addEventListener("click", () => {
+exportJSONBtn?.addEventListener("click", () => {
   const payload = {
     version: 2,
     movimientos: combinarGastos(),
@@ -2434,7 +2890,7 @@ exportJSONBtn.addEventListener("click", () => {
   showToast("JSON exportado (completo)", { type: "info", duration: 1600 });
 });
 
-importJSONInput.addEventListener("change", e => {
+importJSONInput?.addEventListener("change", e => {
   const file = e.target.files[0];
   if (!file) return;
 
@@ -2448,14 +2904,14 @@ importJSONInput.addEventListener("change", e => {
       const existentes = combinarGastos();
       const idsExistentes = new Set(existentes.map(g => g.id).filter(Boolean));
       const firmasExistentes = new Set(
-        existentes.map(g => {
-          const tipo = g?.tipo === "beneficio" ? "beneficio" : "gasto";
-          const categoria = String(g?.categoria || "").replace(/\s+/g, " ").trim().toLowerCase();
-          const importe = Number(g?.importe) || 0;
-          const fecha = String(g?.fecha || "").slice(0,10);
-          return `${tipo}|${categoria}|${importe}|${fecha}`;
-        })
-      );
+  existentes.map(g => {
+    const tipo = g?.tipo === "beneficio" ? "beneficio" : "gasto";
+    const categoria = String(g?.categoria || "").replace(/\s+/g, " ").trim().toLowerCase();
+    const importe = round2(g?.importe);
+    const fecha = String(g?.fecha || "").slice(0,10);
+    return `${tipo}|${categoria}|${importe}|${fecha}`;
+  })
+);
 
       let insertados = 0;
       for (const raw of importMovs) {
@@ -2472,7 +2928,7 @@ importJSONInput.addEventListener("change", e => {
         if (!categoria) continue;
 
         let id = (typeof raw.id === "string" && raw.id.trim()) ? raw.id : null;
-        const firma = `${tipo}|${categoria.toLowerCase()}|${importe}|${fecha}`;
+        const firma = `${tipo}|${categoria.toLowerCase()}|${round2(importe)}|${fecha}`;
 
         if (id && idsExistentes.has(id)) continue;
         if (!id && firmasExistentes.has(firma)) continue;
@@ -2537,6 +2993,7 @@ importJSONInput.addEventListener("change", e => {
       refreshCategorySuggestions();
       renderCatBudgets();
       checkRecurrentsReminder();
+      populateSelectHistorico();
 
       const extras = Array.isArray(datos) ? '' : ' + reglas + presupuestos';
       showToast(`Importación OK (${insertados} movimientos${extras})`, { type: "success" });
@@ -2545,13 +3002,14 @@ importJSONInput.addEventListener("change", e => {
     }
   };
   reader.readAsText(file);
+  importJSONInput.value = "";
 });
 
 // -------------------- Dark Mode --------------------
-toggleDarkBtn.addEventListener("click", () => {
+toggleDarkBtn?.addEventListener("click", () => {
   body.classList.toggle("dark");
   localStorage.setItem("darkMode", body.classList.contains("dark"));
-  darkIcon.textContent = body.classList.contains("dark") ? "☀️" : "🌙";
+  if (darkIcon) darkIcon.textContent = body.classList.contains("dark") ? "☀️" : "🌙";
 
   // Pie
   if (chartPorcentaje) {
@@ -2602,21 +3060,24 @@ function positionMenuPanel() {
 }
 
 function openMenu() {
+  if (!menu || !menuToggle) return;
   isMenuOpen = true;
+  syncMenuActiveToVisible();
   menu.classList.add("menu-abierto");
   menuToggle.classList.add("abierto");
   menuToggle.setAttribute("aria-expanded","true");
   document.body.classList.add('menu-open');
   menuOverlay.classList.add('show');
   positionMenuPanel();
-  // Fijar arriba (usa el valor por defecto de CSS: 60px)
-  document.documentElement.style.removeProperty('--menuTop');
-
   requestAnimationFrame(() => {
-    const firstItem = menu.querySelector("li");
-    if (firstItem) firstItem.focus();
-  });
+  const first = menu.querySelector('li[tabindex], li[role="button"]') || menu;
+  first.setAttribute?.('tabindex','0');
+  first.focus?.();
+});
 }
+
+window.addEventListener('scroll', positionMenuPanel, { passive:true });
+window.addEventListener('resize', positionMenuPanel);
 
 function closeMenu() {
   if (!isMenuOpen) return;
@@ -2641,7 +3102,7 @@ function closeMenu() {
   menuOverlay.classList.remove('show');
 }
 
-menuToggle.addEventListener("click", () => {
+menuToggle?.addEventListener("click", () => {
   isMenuOpen ? closeMenu() : openMenu();
 });
 
@@ -2654,46 +3115,54 @@ document.addEventListener('keydown', (e) => {
 menuOverlay.addEventListener('click', closeMenu);
 
 // Items del menú
-menu.querySelectorAll("li").forEach(item => {
-  item.setAttribute('tabindex','0');
-  item.setAttribute('role','button');
+// -------------------- Menú hamburguesa: listeners de items --------------------
+if (menu) {
+  menu.querySelectorAll("li").forEach(item => {
+    item.setAttribute('tabindex','0');
+    item.setAttribute('role','button');
 
-  item.addEventListener("click", () => {
-    const seccionId = item.dataset.section;
+    item.addEventListener("click", () => {
+      const seccionId = item.dataset.section;
+      if (!seccionId) return; // <- evita errores si el li no tiene data-section
 
-    document.querySelectorAll("main section").forEach(s => s.classList.add("oculto"));
-    document.getElementById(seccionId).classList.remove("oculto");
+      document.querySelectorAll('#menu li').forEach(li => li.classList.remove('active'));
+      item.classList.add('active');
 
-    closeMenu();
+      // Cerrar menú (si procede)
+      closeMenu?.();
 
-    (document.querySelector('main') || document.body)
-      .scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.querySelectorAll("main section").forEach(s => s.classList.add("oculto"));
+      document.getElementById(seccionId)?.classList.remove("oculto");
 
-    const mesSel = filtrarMes.value || mesActual;
+      (document.querySelector('main') || document.body)
+        .scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    if (seccionId === "seccionGraficoPorcentaje") {
-      if (chartPorcentaje) chartPorcentaje.destroy();
-      requestAnimationFrame(() => { renderGraficoPorcentaje(mesSel); });
-      markOnboardStep('graficos');
-    }
-    if (seccionId === "seccionGraficoDiario") {
-      if (chartDiario) chartDiario.destroy();
-      requestAnimationFrame(() => {
-        setTituloGraficoDiario(mesSel);
-        renderGraficoDiario(mesSel);
-      });
-      markOnboardStep('graficos');
-    }
-    if (seccionId === "seccionHistorico") {
-      if (chartHistorico) chartHistorico.destroy();
-      requestAnimationFrame(() => { renderGraficoHistorico(); });
-    }
+      const mesSel = filtrarMes.value || mesActual;
+
+      if (seccionId === "seccionGraficoPorcentaje") {
+        if (chartPorcentaje) chartPorcentaje.destroy();
+        requestAnimationFrame(() => { renderGraficoPorcentaje(mesSel); });
+        markOnboardStep('graficos');
+      }
+      if (seccionId === "seccionGraficoDiario") {
+        if (chartDiario) chartDiario.destroy();
+        requestAnimationFrame(() => {
+          setTituloGraficoDiario(mesSel);
+          renderGraficoDiario(mesSel);
+        });
+        markOnboardStep('graficos');
+      }
+      if (seccionId === "seccionHistorico") {
+        if (chartHistorico) chartHistorico.destroy();
+        requestAnimationFrame(() => { renderGraficoHistorico(); });
+      }
+    });
+
+    item.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); }
+    });
   });
-
-  item.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); }
-  });
-});
+}
 
 // -------------------- Onboarding (guía rápida) --------------------
 const ONBOARD_KEY = 'onboard_v1';
