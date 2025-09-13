@@ -1744,31 +1744,48 @@ document.body.appendChild(menuOverlay);
 
 // -------- Bottom Nav (móvil/tablet): crea/actualiza/borra --------
 function selectSection(seccionId){
-  document.querySelectorAll('main section').forEach(s => s.classList.add('oculto'));
+  const main = document.querySelector('main') || document.body;
+  const next = document.getElementById(seccionId);
+  if (!next) return;
 
-  // 🔻 Detén animaciones "vacías" activas en otros canvas
-  ['graficoGastos','graficoDiario','graficoHistorico'].forEach(id => {
-    const c = document.getElementById(id);
-    if (c) stopEmptyAnim(c);
+  // 1) Lock de altura para que el documento no “colapse”
+  const y = window.scrollY;
+  const lockH = Math.max(main.offsetHeight, window.innerHeight);
+  main.style.minHeight = lockH + 'px';
+
+  // 2) Muestra primero la sección destino (así nunca hay frame con altura 0)
+  next.classList.remove('oculto');
+  // Fuerza un reflow para que el navegador “vea” el nuevo alto antes de ocultar las demás
+  next.getBoundingClientRect();
+
+  // 3) Oculta el resto (después)
+  document.querySelectorAll('main section').forEach(s => {
+    if (s !== next) s.classList.add('oculto');
   });
 
-  document.getElementById(seccionId)?.classList.remove('oculto');
-  scrollTopIfDesktop();
+  // 4) Marca activos en bottom nav y menú
+  document.querySelectorAll('#bottomNav button[data-target]').forEach(b => {
+    if (b.dataset.target === seccionId) b.setAttribute('aria-current','page');
+    else b.removeAttribute('aria-current');
+  });
+  syncMenuActiveToVisible();
 
-  // refrescar gráficos si aplica
+  // 5) Refresca gráficos SOLO cuando ya está visible
   const mk = (filtrarMes?.value) || mesActual;
   if (seccionId === "seccionGraficoPorcentaje"){ if (chartPorcentaje) chartPorcentaje.destroy(); renderGraficoPorcentaje(mk); }
   if (seccionId === "seccionGraficoDiario"){ if (chartDiario) chartDiario.destroy(); setTituloGraficoDiario(mk); renderGraficoDiario(mk); }
   if (seccionId === "seccionHistorico"){ if (chartHistorico) chartHistorico.destroy(); renderGraficoHistorico(); }
   if (seccionId === "seccionRecurrentes"){ renderRecurrentManager(); }
-  // marcar activo en la barra
-  document.querySelectorAll('#bottomNav button[data-target]').forEach(b => {
-  if (b.dataset.target === seccionId) b.setAttribute('aria-current','page');
-  else b.removeAttribute('aria-current');
-});
-  // marcar activo en el menú aunque vengas desde la bottom bar
-  syncMenuActiveToVisible();
+
+  // 6) Restaura scroll y desbloquea el lock de altura
+  requestAnimationFrame(() => {
+    // Si estabas muy abajo y la nueva sección es más corta, clamp al máximo válido
+    const maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    window.scrollTo(0, Math.min(y, maxY));
+    main.style.minHeight = ''; // quita el lock
+  });
 }
+
 
 function buildBottomNav(){
   if (document.getElementById('bottomNav')) return;
@@ -4150,40 +4167,23 @@ if (menu) {
     item.setAttribute('role','button');
 
     item.addEventListener("click", () => {
-      const seccionId = item.dataset.section;
-      if (!seccionId) return; // <- evita errores si el li no tiene data-section
+  const seccionId = item.dataset.section;
+  if (!seccionId) return;
 
-      document.querySelectorAll('#menu li').forEach(li => li.classList.remove('active'));
-      item.classList.add('active');
+  // Activo visual
+  document.querySelectorAll('#menu li').forEach(li => li.classList.remove('active'));
+  item.classList.add('active');
 
-      // Cerrar menú (si procede)
-      closeMenu?.();
+  // Cerrar menú y cambiar de sección usando la función única (sin reflows dobles)
+  closeMenu?.();
+  selectSection(seccionId);
 
-      document.querySelectorAll("main section").forEach(s => s.classList.add("oculto"));
-      document.getElementById(seccionId)?.classList.remove("oculto");
-
-      scrollTopIfDesktop();
-
-      const mesSel = filtrarMes.value || mesActual;
-
-      if (seccionId === "seccionGraficoPorcentaje") {
-        if (chartPorcentaje) chartPorcentaje.destroy();
-        requestAnimationFrame(() => { renderGraficoPorcentaje(mesSel); });
-        markOnboardStep('graficos');
-      }
-      if (seccionId === "seccionGraficoDiario") {
-        if (chartDiario) chartDiario.destroy();
-        requestAnimationFrame(() => {
-          setTituloGraficoDiario(mesSel);
-          renderGraficoDiario(mesSel);
-        });
-        markOnboardStep('graficos');
-      }
-      if (seccionId === "seccionHistorico") {
-        if (chartHistorico) chartHistorico.destroy();
-        requestAnimationFrame(() => { renderGraficoHistorico(); });
-      }
-    });
+  // Onboarding / títulos
+  const mesSel = filtrarMes.value || mesActual;
+  if (seccionId === "seccionGraficoPorcentaje" || seccionId === "seccionGraficoDiario") {
+    markOnboardStep('graficos');
+  }
+});
 
     item.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); }
