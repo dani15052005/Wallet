@@ -1121,6 +1121,37 @@ body.dark #seccionHistorico .panel{
   };
 })();
 
+// 🔧 FIX overlay: centrado móvil + botones cómodos
+(() => {
+  const css = `
+    /* Centrado/encajado en móviles y tablets (respeta notch) */
+    #updOverlay{
+      padding-top:16px;
+      padding-bottom:16px;
+      padding-left:  calc(16px + env(safe-area-inset-left, 0px));
+      padding-right: calc(16px + env(safe-area-inset-right, 0px));
+    }
+    #updCard{
+      width: 100% !important;      /* anula width:min(92vw,...) */
+      max-width: 760px;
+      margin: 0 auto;
+      box-sizing: border-box;
+    }
+
+    /* Botonera cómoda en pantallas pequeñas */
+    @media (max-width: 768px){
+      #updCard .upd-actions{ flex-direction: column; }
+      #updCard .upd-actions .upd-btn{
+        width: 100%;
+        padding: 1rem 1.1rem;      /* un pelín más alto */
+      }
+    }
+  `;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
+})();
+
   // ---- Focus trap + accesibilidad ----
   function trapFocus(e){
     if (e.key !== 'Tab') return;
@@ -1144,6 +1175,21 @@ body.dark #seccionHistorico .panel{
     card.querySelector('.upd-sub').textContent = sub;
     card.querySelector('#updPrimary').textContent   = opts.primaryText   || (opts.type==='partial' ? 'Actualizar recursos' : 'Actualizar ahora');
     card.querySelector('#updSecondary').textContent = opts.secondaryText || 'Más tarde';
+
+        // Mensaje adaptado: teclas (desktop) vs botones (móvil/tablet)
+    const kbEl = card.querySelector('.upd-kb');
+    const mq = window.matchMedia('(max-width: 1024px)');
+    const setKb = () => {
+      if (!kbEl) return;
+      if (mq.matches) {
+        kbEl.innerHTML = 'Pulsa <strong>Actualizar ahora</strong> para actualizar o <strong>Más tarde</strong> para continuar en otro momento.';
+      } else {
+        kbEl.innerHTML = 'Pulsa <strong>Enter</strong> para actualizar o <strong>Esc</strong> para continuar más tarde.';
+      }
+    };
+    setKb();
+    if (mq.addEventListener) mq.addEventListener('change', setKb);
+    else if (mq.addListener) mq.addListener(setKb); // Safari viejo
 
     overlay.setAttribute('aria-hidden','false');
     overlay.classList.add('show');
