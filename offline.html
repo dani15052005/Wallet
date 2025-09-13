@@ -1,18 +1,116 @@
-<!-- offline.html -->
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Sin conexión - Gestor Financiero</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sin conexión — Ledgerly</title>
+  <meta name="theme-color" content="#4caf50">
+  <meta name="robots" content="noindex">
+  <!-- No registramos SW aquí; lo hace index.html -->
+  <style>
+    :root{
+      --bg:#f6f7f8; --fg:#1b1b1b; --muted:#6b7280; --primary:#4caf50; --card:#ffffff;
+      --border:#e5e7eb; --shadow:0 10px 30px rgba(0,0,0,.12);
+    }
+    .dark:root{ --bg:#0f1113; --fg:#eaeaea; --muted:#a3a3a3; --card:#111; --border:#2c2c2c; }
+    *{ box-sizing:border-box }
+    html,body{ height:100% }
+    body{
+      margin:0; background:var(--bg); color:var(--fg);
+      font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      display:grid; place-items:center; padding:24px;
+      padding-top: calc(24px + env(safe-area-inset-top, 0px));
+      padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    }
+    .card{
+      width:min(92vw,720px); background:var(--card); border:1px solid var(--border);
+      border-radius:16px; box-shadow:var(--shadow); padding:20px 20px 16px;
+    }
+    h1{ margin:0 0 .3rem; font-size:1.4rem }
+    p{ margin:.25rem 0 .75rem; color:var(--muted) }
+    .actions{ display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.5rem }
+    .btn{
+      appearance:none; border:1px solid var(--border); background:#f8fafc; color:#111;
+      padding:.6rem .9rem; border-radius:12px; cursor:pointer; font-weight:600;
+    }
+    .btn:hover{ background:#eef2f7 }
+    .btn-primary{
+      background:#4caf50; color:#fff; border-color:#43a047;
+    }
+    .btn-primary:hover{ filter:brightness(.98) }
+    .status{ font-size:.9rem; margin-top:.5rem; opacity:.9 }
+    .hint{ font-size:.85rem; opacity:.85; margin-top:.25rem }
+    .badge{ display:inline-block; padding:.1rem .5rem; border-radius:999px; background:rgba(76,175,80,.12); color:#2e7d32; font-weight:700; border:1px solid rgba(76,175,80,.35); }
+    .dark .badge{ color:#a7e3a7 }
+    .small{ font-size:.85rem }
+    .sep{ flex:1 1 auto }
+    @media (prefers-reduced-motion: reduce){ .btn{ transition:none } }
+  </style>
+  <script>
+    // Dark mode consistente con la app
+    try { if (localStorage.getItem('darkMode') === 'true') document.documentElement.classList.add('dark'); } catch {}
+  </script>
 </head>
 <body>
-  <main class="container">
-    <h1>📴 Offline</h1>
-    <p>Parece que no tienes conexión a Internet. La app sigue funcionando con los datos guardados en tu dispositivo.</p>
-    <p>Si necesitas refrescar los datos cuando vuelvas a tener conexión, recarga la página.</p>
-    <a href="./" class="button">Volver</a>
+  <main class="card" role="main" aria-live="polite">
+    <div class="badge">Modo sin conexión</div>
+    <h1>Estás sin conexión</h1>
+    <p>No pudimos cargar la página solicitada. Cuando recuperes la conexión podrás volver a la app.</p>
+
+    <div class="actions">
+      <button id="retry" class="btn btn-primary">Reintentar</button>
+      <button id="goHome" class="btn">Volver a la app</button>
+      <span class="sep"></span>
+      <button id="resetCache" class="btn small" title="Borrar caches de la app">Restablecer caché</button>
+    </div>
+
+    <div id="netStatus" class="status"></div>
+    <div class="hint">Consejo: si usas datos móviles, activa la conexión y pulsa “Reintentar”.</div>
   </main>
+
+  <script>
+    (function(){
+      const retryBtn = document.getElementById('retry');
+      const homeBtn = document.getElementById('goHome');
+      const resetBtn = document.getElementById('resetCache');
+      const net = document.getElementById('netStatus');
+
+      function updateNet(){
+        const online = navigator.onLine;
+        net.textContent = online ? 'Conexión detectada ✅' : 'Sin conexión ❌';
+        retryBtn.disabled = !online;     // tiene sentido reintentar solo si hay red
+      }
+      updateNet();
+      window.addEventListener('online',  updateNet);
+      window.addEventListener('offline', updateNet);
+
+      // “Volver a la app”: usa ruta relativa robusta (soporta subcarpetas/GitHub Pages)
+      function appHomeURL(){
+        // p.ej. https://tudominio.com/app/ => vuelve a esa carpeta
+        return new URL('.', location.href).href;
+      }
+
+      retryBtn.addEventListener('click', () => {
+        if (!navigator.onLine) return;   // si no hay red, no “parpadees”
+        location.reload();
+      });
+
+      homeBtn.addEventListener('click', () => {
+        location.href = appHomeURL();
+      });
+
+      resetBtn.addEventListener('click', async () => {
+        try{
+          if ('caches' in window){
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k)));
+          }
+        }catch(_){}
+        // Si hay red, vuelve al home; si no, intenta refrescar esta
+        if (navigator.onLine) location.href = appHomeURL();
+        else location.reload();
+      });
+    })();
+  </script>
 </body>
 </html>

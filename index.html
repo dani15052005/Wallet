@@ -7,8 +7,15 @@
 
   <link rel="stylesheet" href="styles.css"/>
   <!-- Chart.js local para funcionar sin conexión -->
-  <script src="chart.umd.min.js"></script>
+  <script defer src="chart.umd.min.js"></script>
   <script defer src="script.js"></script>
+
+  <!-- Service Worker (único y consistente) -->
+  <script defer>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    }
+  </script>
 
   <!-- Manifest PWA -->
   <link rel="manifest" href="manifest.json">
@@ -27,17 +34,15 @@
 
   <!-- Color del navegador -->
   <meta name="theme-color" content="#4caf50">
-
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(reg => console.log('Service Worker registrado', reg))
-        .catch(err => console.error('Error registrando SW:', err));
-    }
-  </script>
 </head>
 
 <body>
+  <noscript>
+    <div style="padding:.75rem; background:#ffebe6; color:#6b0000; text-align:center;">
+      Esta aplicación necesita JavaScript para funcionar correctamente.
+    </div>
+  </noscript>
+
   <!-- Menú hamburguesa -->
   <header>
     <h1>Gestor Financiero</h1>
@@ -53,7 +58,7 @@
     </button>
   </header>
 
-  <nav id="menu" class="menu-cerrado">
+  <nav id="menu" class="menu-cerrado" role="navigation" aria-label="Secciones">
     <ul>
       <li data-section="seccionFormulario">Añadir Gasto/Beneficio</li>
       <li data-section="seccionGraficoPorcentaje">Gráfica de Gastos</li>
@@ -93,58 +98,58 @@
     <section id="seccionFormulario" class="page">
       <div id="presupuesto-container">
         <label for="presupuesto">Presupuesto mensual (€):</label>
-        <input type="number" id="presupuesto" placeholder="Ej. 1000">
+        <input type="number" id="presupuesto" placeholder="Ej. 1000" min="0" step="0.01" inputmode="decimal">
       </div>
 
       <!-- Presupuestos por categoría -->
-<div id="catBudgetPanel" class="catbudget-card">
-  <h3>Presupuestos por categoría</h3>
-  <div class="catbudget-row">
-    <input type="text" id="catBudgetCategoria" placeholder="Categoría (ej. Comida)" list="categoriasSugeridas">
-    <input type="number" id="catBudgetImporte" placeholder="€ mensual">
-    <button id="catBudgetGuardar" type="button" class="btn-primary">Guardar</button>
-  </div>
-  <datalist id="categoriasSugeridas"></datalist>
-  <div id="catBudgetList" class="catbudget-list"></div>
-</div>
+      <div id="catBudgetPanel" class="catbudget-card">
+        <h3>Presupuestos por categoría</h3>
+        <div class="catbudget-row">
+          <input type="text" id="catBudgetCategoria" placeholder="Categoría (ej. Comida)" list="categoriasSugeridas" autocomplete="off">
+          <input type="number" id="catBudgetImporte" placeholder="€ mensual" min="0.01" step="0.01" inputmode="decimal">
+          <button id="catBudgetGuardar" type="button" class="btn-primary">Guardar</button>
+        </div>
+        <datalist id="categoriasSugeridas"></datalist>
+        <div id="catBudgetList" class="catbudget-list"></div>
+      </div>
 
       <form id="formulario">
         <select id="tipo">
           <option value="gasto">Gasto</option>
           <option value="beneficio">Beneficio</option>
         </select>
-        <input type="text" id="categoria" placeholder="Ej. Transporte" />
-        <input type="number" id="importe" placeholder="Ej. 120" />
+        <input type="text" id="categoria" placeholder="Ej. Transporte" list="categoriasSugeridas" autocomplete="off" />
+        <input type="number" id="importe" placeholder="Ej. 120" min="0.01" step="0.01" inputmode="decimal" />
         <input type="date" id="fecha" />
         <label class="recur-inline">
-        <input id="recurrente" type="checkbox">
-              Recurrente
+          <input id="recurrente" type="checkbox">
+          Recurrente
         </label>
         <select id="recurrenteFrecuencia">
-        <option value="mensual" selected>Mensual</option>
-        <!-- más adelante podrás añadir semanal/quincenal, etc. -->
+          <option value="mensual" selected>Mensual</option>
+          <!-- más adelante podrás añadir semanal/quincenal, etc. -->
         </select>
 
         <button type="submit">Agregar</button>
       </form>
 
       <div id="filtros">
-        <input type="text" id="buscarCategoria" placeholder="Filtrar por categoría">
+        <input type="text" id="buscarCategoria" placeholder="Filtrar por categoría" autocomplete="off">
         <input type="month" id="filtrarMes">
       </div>
 
       <div class="tabla-scroll">
         <table>
-         <thead>
-           <tr>
-            <th>Tipo</th>
-            <th>Categoría</th>
-            <th>Importe (€)</th>
-            <th>Fecha</th>
-            <th>Acciones</th>
-           </tr>
-         </thead>
-         <tbody id="tablaGastos"></tbody>
+          <thead>
+            <tr>
+              <th scope="col" data-sort-key="tipo"><span class="th-label">Tipo</span></th>
+              <th scope="col" data-sort-key="categoria"><span class="th-label">Categoría</span></th>
+              <th scope="col" data-sort-key="importe"><span class="th-label">Importe (€)</span></th>
+              <th scope="col" data-sort-key="fecha"><span class="th-label">Fecha</span></th>
+              <th scope="col"><span class="th-label">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody id="tablaGastos"></tbody>
         </table>
       </div>
 
@@ -168,45 +173,45 @@
     <section id="seccionGraficoPorcentaje" class="oculto page">
       <h2>📊 Distribución de Gastos</h2>
       <div class="panel">
-  <canvas id="graficoGastos"></canvas>
-  <!-- opcional: estado vacío -->
-  <div id="emptyPorcentaje" class="empty-state" hidden>
-    <p>No hay datos para mostrar.</p>
-  </div>
-</div>
+        <canvas id="graficoGastos" role="img" aria-label="Distribución de gastos por categoría"></canvas>
+        <!-- opcional: estado vacío -->
+        <div id="emptyPorcentaje" class="empty-state" hidden>
+          <p>No hay datos para mostrar.</p>
+        </div>
+      </div>
     </section>
 
     <section id="seccionGraficoDiario" class="oculto page">
       <h2 id="tituloGraficoDiario">📊 Gastos vs Beneficios</h2>
       <div class="panel">
-  <canvas id="graficoDiario"></canvas>
-  <!-- opcional -->
-  <div id="emptyDiario" class="empty-state" hidden>
-    <p>No hay datos este mes.</p>
-  </div>
-</div>
+        <canvas id="graficoDiario" role="img" aria-label="Evolución diaria de gastos e ingresos del mes"></canvas>
+        <!-- opcional -->
+        <div id="emptyDiario" class="empty-state" hidden>
+          <p>No hay datos este mes.</p>
+        </div>
+      </div>
     </section>
 
     <section id="seccionHistorico" class="oculto page">
       <h2>📅 Histórico de Meses</h2>
       <div class="controls-row">
-  <label for="selectMesHistorico">Selecciona un mes:</label>
-  <div class="select-wrap">
-    <select id="selectMesHistorico"></select>
-    <svg class="chev" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  </div>
-</div>
+        <label for="selectMesHistorico">Selecciona un mes:</label>
+        <div class="select-wrap">
+          <select id="selectMesHistorico"></select>
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
       <div class="panel" style="margin-top: 1rem;">
-  <canvas id="graficoHistorico"></canvas>
-  <!-- opcional -->
-  <div id="emptyHistorico" class="empty-state" hidden>
-    <p>No existen datos todavía</p>
-  </div>
-</div>
-<div id="balanceHistorico" style="margin-top: 1rem; font-weight:bold;"></div>
+        <canvas id="graficoHistorico" role="img" aria-label="Comparativa de gastos y beneficios del mes seleccionado"></canvas>
+        <!-- opcional -->
+        <div id="emptyHistorico" class="empty-state" hidden>
+          <p>No existen datos todavía</p>
+        </div>
+      </div>
+      <div id="balanceHistorico" style="margin-top: 1rem; font-weight:bold;"></div>
     </section>
   </main>
 

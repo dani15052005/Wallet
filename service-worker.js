@@ -1,10 +1,12 @@
 // service-worker.js — robusto y consistente en avisos
-const STATIC_CACHE = "gastos-static-v32";
+const STATIC_CACHE = "gastos-static-v33";
 const DYNAMIC_CACHE = "gastos-dynamic-v1";
 const MAX_DYNAMIC_ITEMS = 50;
 
+const APP_SHELL = "./index.html";
+
 const STATIC_FILES = [
-  "./",
+  // ❌ quitamos "./" para no introducir cadena vacía
   "./index.html",
   "./offline.html",
   "./styles.css",
@@ -27,7 +29,6 @@ async function trimCache(cacheName, maxItems) {
       await cache.delete(keys[i]);
     }
   } catch (err) {
-    // silencioso en prod
     console.error("[SW] Error recortando cache:", err);
   }
 }
@@ -38,30 +39,34 @@ function notifyAll(msg) {
       .matchAll({ type: "window", includeUncontrolled: true })
       .then(clientsArr => clientsArr.forEach(c => c.postMessage(msg)));
   } catch (e) {
-    // sin bloqueo
     console.warn("[SW] notifyAll fallo:", e);
   }
 }
 
-const norm = (p) => p.replace(/^\.\//, "").replace(/^\//, "");
-const STATIC_PATHS = STATIC_FILES.map(norm);
+// Normaliza a path absoluto y hacemos un Set exacto de estáticos
+const toAbsPath = (p) => new URL(p, self.location).pathname;
+const STATIC_PATHS_SET = new Set(
+  STATIC_FILES
+    .map(toAbsPath)
+    .filter(Boolean) // evita entradas vacías
+);
+
 function isStaticReq(reqUrl) {
   const u = new URL(reqUrl, self.location.href);
-  const path = u.pathname.replace(/^\//, ""); // sin query
-  return STATIC_PATHS.some(s => path.endsWith(norm(s)));
+  return STATIC_PATHS_SET.has(u.pathname);
 }
 
 // ---------- INSTALL ----------
 self.addEventListener("install", (event) => {
-  // No skipWaiting: dejamos al nuevo SW en "waiting"
   event.waitUntil((async () => {
     try {
       const cache = await caches.open(STATIC_CACHE);
       for (const url of STATIC_FILES) {
-        try { await cache.add(url); } catch (e) { console.warn("[SW] No cacheó:", url, e); }
+        try { await cache.add(url); }
+        catch (e) { console.warn("[SW] No cacheó:", url, e); }
       }
 
-      // Avisar SOLO si es actualización (ya había uno activo)
+      // solo avisar si ya había uno activo
       if (self.registration && self.registration.active) {
         notifyAll({ type: "SW_UPDATED" });
       }
@@ -74,15 +79,12 @@ self.addEventListener("install", (event) => {
 // ---------- ACTIVATE ----------
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
-    // Limpia caches antiguos
     const keys = await caches.keys();
     await Promise.all(
       keys.filter(k => ![STATIC_CACHE, DYNAMIC_CACHE].includes(k)).map(k => caches.delete(k))
     );
 
-    // Navigation Preload (acelera 1ª respuesta en nav)
     try { await self.registration.navigationPreload?.enable(); } catch {}
-
     await self.clients.claim();
   })());
 });
@@ -112,17 +114,19 @@ self.addEventListener("fetch", (event) => {
   const acceptsHTML = (req.headers.get("accept") || "").includes("text/html");
   const isNavigate = req.mode === "navigate" || acceptsHTML;
 
-  // ---- 1) Navegación (HTML): cache-first + refresh + aviso si cambia index.html
+  // ---- 1) Navegación (HTML): cache-first del shell + refresh explícito de index.html
   if (isNavigate) {
     event.respondWith((async () => {
       const cache = await caches.open(STATIC_CACHE);
-      const cachedShell = await cache.match("./index.html", { ignoreSearch: true });
+      const cachedShell = await cache.match(APP_SHELL, { ignoreSearch: true });
 
-      // Actualización en paralelo
+      // Refresco del shell en paralelo (siempre sobre index.html)
       const updatePromise = (async () => {
         try {
+          // Usamos preload si está disponible; si no, pedimos el shell explícito
           const preloaded = await event.preloadResponse;
-          const network = preloaded || await fetch(req, { cache: "no-store" });
+          const network = preloaded || await fetch(APP_SHELL, { cache: "no-store" });
+          if (!network || !network.ok) return null;
 
           if (cachedShell) {
             try {
@@ -136,15 +140,15 @@ self.addEventListener("fetch", (event) => {
             } catch {}
           }
 
-          await cache.put("./index.html", network.clone());
+          await cache.put(APP_SHELL, network.clone());
           return network;
         } catch {
           return null;
         }
       })();
 
-      if (cachedShell) return cachedShell;       // respuesta inmediata
-      const net = await updatePromise;           // 1ª carga
+      if (cachedShell) return cachedShell;
+      const net = await updatePromise;
       if (net) return net;
 
       const offline = await caches.match("./offline.html", { ignoreSearch: true });
@@ -167,7 +171,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // ---- 3) Estáticos same-origin: cache-first + refresh + aviso si cambia
+  // ---- 3) Estáticos same-origin: cache-first + refresh + aviso si cambian
   if (isStaticReq(req.url)) {
     event.respondWith((async () => {
       const cache = await caches.open(STATIC_CACHE);
@@ -175,28 +179,32 @@ self.addEventListener("fetch", (event) => {
 
       try {
         const network = await fetch(req, { cache: "no-store" });
-
-        if (!cachedResp) {
-          await cache.put(req, network.clone());
-          return network;
+        if (!network || !network.ok) {
+          // si la red falla o no es OK, no sobreescribimos
+          return cachedResp || network;
         }
 
-        // Compara headers (ETag / Last-Modified / Content-Length)
-        const netLen = +network.headers.get("content-length") || 0;
-        const cachedLen = +((cachedResp.headers && cachedResp.headers.get("content-length")) || 0);
-        const netETag = network.headers.get("etag");
-        const cachedETag = cachedResp.headers ? cachedResp.headers.get("etag") : null;
-        const netLM = network.headers.get("last-modified");
-        const cachedLM = cachedResp.headers ? cachedResp.headers.get("last-modified") : null;
-
         let changed = false;
-        if (netETag && cachedETag && netETag !== cachedETag) changed = true;
-        else if (netLM && cachedLM && netLM !== cachedLM) changed = true;
-        else if (netLen && cachedLen && netLen !== cachedLen) changed = true;
+        if (cachedResp) {
+          // Compara headers (si existen)
+          const netLen = +network.headers.get("content-length") || 0;
+          const cachedLen = +((cachedResp.headers && cachedResp.headers.get("content-length")) || 0);
+          const netETag = network.headers.get("etag");
+          const cachedETag = cachedResp.headers ? cachedResp.headers.get("etag") : null;
+          const netLM = network.headers.get("last-modified");
+          const cachedLM = cachedResp.headers ? cachedResp.headers.get("last-modified") : null;
+
+          if (netETag && cachedETag && netETag !== cachedETag) changed = true;
+          else if (netLM && cachedLM && netLM !== cachedLM) changed = true;
+          else if (netLen && cachedLen && netLen !== cachedLen) changed = true;
+        } else {
+          changed = true; // primera vez
+        }
 
         await cache.put(req, network.clone());
         if (changed) notifyAll({ type: "SW_UPDATED_PARTIAL", url: req.url });
 
+        // cache-first
         return cachedResp || network;
       } catch {
         return cachedResp || new Response("", { status: 503, statusText: "Servicio no disponible" });
@@ -205,16 +213,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // ---- 4) Dinámicos same-origin: cache-first + refresh
+  // ---- 4) Dinámicos same-origin: cache-first de respaldo + refresh
   event.respondWith((async () => {
     const cache = await caches.open(DYNAMIC_CACHE);
     const cachedResp = await cache.match(req, { ignoreSearch: true });
 
     try {
       const network = await fetch(req);
-      await cache.put(req, network.clone());
-      await trimCache(DYNAMIC_CACHE, MAX_DYNAMIC_ITEMS);
-      return network;
+      if (network && network.ok) {
+        await cache.put(req, network.clone());
+        await trimCache(DYNAMIC_CACHE, MAX_DYNAMIC_ITEMS);
+      }
+      return network.ok ? network : (cachedResp || network);
     } catch {
       if (cachedResp) return cachedResp;
       if (req.destination === "image") {
@@ -235,7 +245,6 @@ self.addEventListener("message", (event) => {
   }
 
   if (event.data.type === "SKIP_WAITING") {
-    // El cliente pulsa "Actualizar ahora"
     self.skipWaiting();
   }
 });

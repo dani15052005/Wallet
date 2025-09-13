@@ -273,7 +273,7 @@ header.is-scrolled { box-shadow: 0 2px 10px rgba(0,0,0,.08); }
   color: #111;
 }
 .banner-actualizacion.show{ transform: translateY(0); }
-body.dark .banner-actualizacion{ color:#fff; }
+body.dark .banner-actualizacion{ color:#111; }
 
 /* Mientras el menú esté abierto, no resaltes el .active si no está bajo el cursor */
 body.menu-open #menu li.active{
@@ -922,23 +922,22 @@ overlay.addEventListener('click', (e) => {
   (() => {
   const css = `
     /* Estado vacío centrado en "Gestionar recurrentes" */
-    .recur-empty{
-      min-height: 220px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      gap:.6rem;
-      text-align:center;
-    }
-    .recur-empty p{ margin:0; opacity:.85; }
-    .recur-empty canvas{
-      width:200px; height:auto;
-      filter: drop-shadow(0 2px 6px rgba(0,0,0,.25));
-    }
-    body.dark .recur-empty canvas{
-      filter: drop-shadow(0 2px 6px rgba(0,0,0,.5));
-      /* Altura uniforme de cada vista */
+.recur-empty{
+  min-height: 220px;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:.6rem; text-align:center;
+}
+.recur-empty p{ margin:0; opacity:.85; }
+.recur-empty canvas{
+  width:200px; height:auto;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.25));
+}
+body.dark .recur-empty canvas{
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.5));
+}
+
+/* Altura uniforme de cada vista */
 .page{
   min-height: calc(100vh - 64px - var(--bottomBarH, 0px) - env(safe-area-inset-bottom, 0px));
   display:flex; flex-direction:column;
@@ -948,25 +947,18 @@ overlay.addEventListener('click', (e) => {
 .panel{
   border:1px solid var(--border-color,#e5e7eb);
   border-radius:12px;
-  background: transparent !important;   /* << clave */
+  background: transparent !important;
   padding:12px;
 }
-body.dark .panel{
-  border-color:#333;
-  background: transparent !important;   /* << clave */
-}
+body.dark .panel{ border-color:#333; background: transparent !important; }
 
 /* Cajas de “vacío” dentro del panel con altura cómoda */
 .panel .empty-box{ min-height: 220px; }
-    }
-/* ===== FONDO LIMPIO (la página manda su color) ===== */
 
-/* Las vistas no deben pintar un color propio */
-.page{
-  background: transparent !important;
-}
+/* FONDO LIMPIO (la página manda su color) */
+.page{ background: transparent !important; }
 
-/* Estas secciones (histórico, % por cat., diario, recurrentes) sin fondo ni sombra */
+/* Estas secciones sin fondo ni sombra */
 #seccionHistorico,
 #seccionGraficoPorcentaje,
 #seccionGraficoDiario,
@@ -976,10 +968,8 @@ body.dark .panel{
   border: 0 !important;
 }
 
-/* El canvas nunca debe oscurecer: */
-#graficoHistorico,
-#graficoGastos,
-#graficoDiario{
+/* El canvas nunca debe oscurecer */
+#graficoHistorico, #graficoGastos, #graficoDiario{
   background: transparent !important;
 }
   `;
@@ -1381,9 +1371,11 @@ const menu = document.getElementById("menu");
 
     /* Cuando hay hover sobre cualquier <li>, oculta el estilo del activo
    para que no se vean dos elementos resaltados a la vez */
-body.menu-open #menu:has(li:hover) li.active{
-  background: transparent !important;
-  box-shadow: none !important;
+@supports selector(:has(*)) {
+  body.menu-open #menu:has(li:hover) li.active{
+    background: transparent !important;
+    box-shadow: none !important;
+  }
 }
     body.dark.menu-open #menu li:hover{
       background: rgba(255,255,255,.12) !important;
