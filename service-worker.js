@@ -1,12 +1,11 @@
 // service-worker.js — robusto y consistente en avisos
-const STATIC_CACHE = "gastos-static-v33";
+const STATIC_CACHE = "gastos-static-v35";
 const DYNAMIC_CACHE = "gastos-dynamic-v1";
 const MAX_DYNAMIC_ITEMS = 50;
 
 const APP_SHELL = "./index.html";
 
 const STATIC_FILES = [
-  // ❌ quitamos "./" para no introducir cadena vacía
   "./index.html",
   "./offline.html",
   "./styles.css",
