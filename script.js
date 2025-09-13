@@ -942,6 +942,12 @@ body.dark .recur-empty canvas{
   min-height: calc(100vh - 64px - var(--bottomBarH, 0px) - env(safe-area-inset-bottom, 0px));
   display:flex; flex-direction:column;
 }
+  /* Las 3 vistas de gráficos ocupan exactamente el alto útil de la ventana */
+#seccionGraficoPorcentaje.page,
+#seccionGraficoDiario.page,
+#seccionHistorico.page{
+  height: calc(100vh - 64px - var(--bottomBarH, 0px) - env(safe-area-inset-bottom, 0px));
+}
 
 /* Contenedor con bordes redondos; SIN fondo propio */
 .panel{
@@ -949,8 +955,47 @@ body.dark .recur-empty canvas{
   border-radius:12px;
   background: transparent !important;
   padding:12px;
+
+  /* El panel ocupa el alto restante de la página */
+  display:flex;
+  flex-direction:column;
+  flex:1 1 auto;
+  min-height:0;
+  position:relative;
 }
 body.dark .panel{ border-color:#333; background: transparent !important; }
+
+/* Los paneles de las vistas de gráficos se estiran dentro de la página */
+#seccionGraficoPorcentaje .panel,
+#seccionGraficoDiario .panel,
+#seccionHistorico .panel{ flex:1 1 auto; }
+}
+
+/* Los canvas rellenan el panel al 100% */
+/* Deja que Chart.js controle la altura del canvas */
+/* Contenedor que sí se estira */
+.chartbox{
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 260px;        /* lo que quieras de alto mínimo */
+}
+
+/* El canvas ocupa el contenedor al 100% */
+.chartbox > canvas{
+  position: absolute; inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* IMPORTANTE: el canvas en sí NO es un flex item */
+#graficoGastos,
+#graficoDiario,
+#graficoHistorico{
+  flex: 0 0 auto;           /* ← quita el estiramiento */
+  width: 100% !important;
+  display: block;
+}
 
 /* Cajas de “vacío” dentro del panel con altura cómoda */
 .panel .empty-box{ min-height: 220px; }
@@ -965,7 +1010,18 @@ body.dark .panel{ border-color:#333; background: transparent !important; }
 #seccionRecurrentes{
   background: transparent !important;
   box-shadow: none !important;
-  border: 0 !important;
+}
+
+/* Asegura el “recuadro” alrededor de las gráficas */
+#seccionGraficoPorcentaje .panel,
+#seccionGraficoDiario .panel,
+#seccionHistorico .panel{
+  border:1px solid var(--border-color,#e5e7eb) !important;
+}
+body.dark #seccionGraficoPorcentaje .panel,
+body.dark #seccionGraficoDiario .panel,
+body.dark #seccionHistorico .panel{
+  border-color:#333 !important;
 }
 
 /* El canvas nunca debe oscurecer */
@@ -976,6 +1032,93 @@ body.dark .panel{ border-color:#333; background: transparent !important; }
   const s = document.createElement('style');
   s.textContent = css;
   document.head.appendChild(s);
+})();
+
+(() => {
+  const css = `
+/* ===== Compacta páginas de gráficos y recurrentes ===== */
+#seccionGraficoPorcentaje h2,
+#seccionGraficoDiario h2,
+#seccionHistorico h2,
+#seccionRecurrentes h2{ margin:.15rem 0 .5rem; }
+
+#seccionGraficoPorcentaje .panel,
+#seccionGraficoDiario .panel,
+#seccionHistorico .panel,
+#seccionRecurrentes .panel{ padding:8px; }
+
+/* Vacíos más bajitos */
+.panel .empty-box{ min-height:160px; }
+
+/* Recurrentes: lista más contenida y con scroll si hace falta */
+#seccionRecurrentes .panel{ max-height:min(62vh,520px); overflow:auto; }
+#recurManagerList{ gap:.4rem !important; }
+.recur-item{ gap:.35rem; }
+.recur-card{ padding:.5rem; }
+
+/* Botones XS un pelín más pequeños */
+.btn-xs{ padding:.28rem .5rem; }
+.btn-primary-xs{ padding:.28rem .6rem; }
+  `;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
+})();
+
+/* === 1) Compactar las vistas de gráficos (no ocupar 100vh) === */
+(() => {
+  const css = `
+/* no fuerces altura de página ni de las vistas de gráficos */
+.page{ min-height: 0 !important; }
+#seccionGraficoPorcentaje.page,
+#seccionGraficoDiario.page,
+#seccionHistorico.page{ height:auto !important; }
+
+/* los paneles y el contenedor de la gráfica no se estiran */
+#seccionGraficoPorcentaje .panel,
+#seccionGraficoDiario .panel,
+#seccionHistorico .panel{ 
+  flex: 0 0 auto !important; 
+  min-height: 0 !important;
+}
+
+/* el wrapper de la gráfica tampoco se estira */
+.chartbox{ 
+  flex: 0 0 auto !important; 
+  min-height: 0 !important; 
+}
+
+/* dale una altura razonable al canvas y evita el fill al 100% */
+.chartbox > canvas{
+  position: relative !important;
+  width: 100% !important;
+  height: 320px !important;
+}
+@media (min-width: 768px){
+  .chartbox > canvas{ height: 420px !important; }
+}
+`;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
+})();
+
+/* === 2) Pastel: elimina la “raya” cuando hay una única categoría === */
+(function patchPieBorder(){
+  const old = window.renderGraficoPorcentaje;
+  if (typeof old !== 'function') return;
+  window.renderGraficoPorcentaje = function(mk){
+    old.call(this, mk);
+    // si ya existe el chart, ajusta el borde según nº de sectores
+    if (window.chartPorcentaje){
+      const ds = chartPorcentaje.data?.datasets?.[0];
+      const vals = Array.isArray(ds?.data) ? ds.data : [];
+      const nonZero = vals.filter(v => Number(v) > 0).length;
+      // con 1 solo sector: sin borde (adiós línea blanca)
+      ds.borderWidth = nonZero <= 1 ? 0 : 2;
+      chartPorcentaje.update();
+    }
+  };
 })();
 
   // ---- Focus trap + accesibilidad ----
@@ -1060,6 +1203,77 @@ body.dark .panel{ border-color:#333; background: transparent !important; }
   window.openUpdateOverlay = openUpdateOverlay;
   window.closeUpdateOverlay = closeUpdateOverlay;
 })();
+})();
+
+(() => {
+  const css = `
+/* 1) Quita el blur del overlay y pásalo detrás en ::after (no ablanda el texto) */
+#updOverlay{
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  isolation: isolate;         /* aísla capas */
+}
+#updOverlay::after{
+  content:"";
+  position: fixed; inset: 0;
+  pointer-events: none;
+  backdrop-filter: saturate(140%) blur(10px);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  z-index: 0;                  /* detrás de la card */
+}
+
+/* 2) Nitidez de la tarjeta y su contenido */
+#updCard, #updCard *{
+  filter: none !important;
+  -webkit-filter: none !important;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 3) El “glass” base se aplica a secundarios, pero NO al primario */
+#updCard .upd-actions .upd-btn{
+  position: relative;
+  overflow: hidden;
+}
+#updCard .upd-actions .upd-btn::before{
+  content:"";
+  position:absolute; inset:0; z-index:-1;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: var(--upd-btn-bg, rgba(255,255,255,.18));
+  border-radius: inherit;
+}
+/* quita glass del primario para que no lave el verde */
+#updCard .upd-actions .upd-btn.primary{ --upd-btn-bg: transparent; }
+#updCard .upd-actions .upd-btn.primary::before{ background: transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+
+/* 4) Fuerza el verde del primario y su hover con máxima especificidad */
+#updCard .upd-actions .upd-btn.primary{
+  background: linear-gradient(180deg, #4caf50, #2e7d32) !important;
+  border-color: #2e7d32 !important;
+  color: #fff !important;
+}
+#updCard .upd-actions .upd-btn.primary:hover,
+#updCard .upd-actions .upd-btn.primary:focus{
+  background: linear-gradient(180deg, #2e7d32, #256e2a) !important;
+}
+#updCard .upd-actions .upd-btn.primary:active{
+  background: linear-gradient(180deg, #256e2a, #1f5d25) !important;
+}
+
+/* 5) Mientras aparece, evita transform raros que suavicen fuentes */
+#updOverlay.show #updCard{
+  transform: none !important;
+  animation: updSlideIn .35s cubic-bezier(.2,.7,.2,1);
+}
+@keyframes updSlideIn { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+@media (prefers-reduced-motion: reduce){
+  #updOverlay.show #updCard{ animation:none !important; }
+}
+`;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
 })();
 
 // -------------------- Toasts --------------------
@@ -1232,6 +1446,7 @@ const darkIcon = document.getElementById("darkIcon");
 // --- Recurrentes (estado global/UI)
 const recurrenteChk  = document.getElementById("recurrente");
 const recurrenteFreq = document.getElementById("recurrenteFrecuencia");
+const UI_COMPACT = true; // reduce alturas, paddings y tipografías en gráficos y recurrentes
 
 // --- Ordenación de tabla ---
 const SORT_STORAGE_KEY = 'tableSort_v1';
@@ -1529,6 +1744,7 @@ function applyBottomNavMode(){
     document.body.classList.remove('has-bottomnav');
     destroyBottomNav();
   }
+  reflowChartsVisible();
 }
 if (_mqBottomNav.addEventListener) {
   _mqBottomNav.addEventListener('change', applyBottomNavMode);
@@ -2491,6 +2707,10 @@ function stopEmptyAnim(canvas){
   cancelAnimationFrame(st.raf);
   window.removeEventListener('resize', st.resizeHandler);
   __emptyAnims.delete(canvas);
+  /* 👇 limpia límites que pone el estado vacío */
+  canvas.style.minHeight = '0';
+  canvas.style.removeProperty('height');
+  canvas.removeAttribute('height');
   const ctx = canvas.getContext('2d');
   const w = canvas.clientWidth || canvas.width, h = canvas.clientHeight || canvas.height;
   ctx.clearRect(0,0,w,h);
@@ -2515,7 +2735,7 @@ const baseBarOpts = {
 };
 
 function renderGraficoPorcentaje(mesFiltrado) {
-  // 🔻 Detén animaciones "vacías" activas en otros canvas
+  // Detén animaciones de “vacío”
   ['graficoGastos','graficoDiario','graficoHistorico'].forEach(id => {
     const c = document.getElementById(id);
     if (c) stopEmptyAnim(c);
@@ -2545,15 +2765,9 @@ function renderGraficoPorcentaje(mesFiltrado) {
     return;
   }
 
-  // Hay datos → asegurar que el canvas no está animándose
   stopEmptyAnim(canvas);
 
-  const rect = canvas.getBoundingClientRect();
-  const w = Math.max(300, rect.width || canvas.clientWidth || 300);
-  const h = Math.max(200, rect.height || 400);
-  canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext("2d");
-
   if (chartPorcentaje) chartPorcentaje.destroy();
 
   const labels     = Object.keys(categorias);
@@ -2563,8 +2777,9 @@ function renderGraficoPorcentaje(mesFiltrado) {
   const textColor   = isDark ? '#fff' : '#000';
   const bgColors    = labels.map(lbl => colorForCategory(lbl));
 
-  const hover = Math.min(12, Math.max(6, Math.round(rect.width * 0.02)));
-  const pad   = hover + 8;
+  const rect = canvas.getBoundingClientRect();
+  const hover = Math.min(10, Math.max(6, Math.round((rect.width || 320) * 0.018)));
+  const pad   = hover + 6;
 
   chartPorcentaje = new Chart(ctx, {
     type: "pie",
@@ -2573,7 +2788,7 @@ function renderGraficoPorcentaje(mesFiltrado) {
       datasets: [{
         data: dataValues,
         backgroundColor: bgColors,
-        radius: "88%",
+        radius: "86%",
         hoverOffset: hover,
         borderColor: bordePastel,
         borderWidth: 2,
@@ -2586,20 +2801,24 @@ function renderGraficoPorcentaje(mesFiltrado) {
       responsive: true,
       maintainAspectRatio: false,
       layout: { padding: { top: pad, right: pad, bottom: pad, left: pad } },
-      animation: { duration: 1200, easing: 'easeOutQuart' },
+      animation: { duration: 900, easing: 'easeOutQuart' },
       animations: {
-        circumference: { from: 0, duration: 1200, easing: 'easeOutQuart' },
-        rotation:      { from: -Math.PI, duration: 1200, easing: 'easeOutQuart' }
+        circumference: { from: 0, duration: 900, easing: 'easeOutQuart' },
+        rotation:      { from: -Math.PI, duration: 900, easing: 'easeOutQuart' }
       },
       elements: { arc: { borderAlign: "inner" } },
       plugins: {
-        legend: { position: 'top', labels: { color: textColor } },
+        legend: {
+          position: 'top',
+          labels: { color: textColor, boxWidth: 10, boxHeight: 10, font: { size: 11 } }
+        },
         tooltip: {
           backgroundColor: isDark ? 'rgba(0,0,0,0.85)' : '#fff',
           titleColor: textColor,
           bodyColor:  textColor,
           borderColor: bordePastel,
-          borderWidth: 1
+          borderWidth: 1,
+          titleFont: { size: 12 }, bodyFont: { size: 12 }
         }
       }
     }
@@ -2607,7 +2826,7 @@ function renderGraficoPorcentaje(mesFiltrado) {
 }
 
 function renderGraficoDiario(mesFiltrado) {
-  // 🔻 Detén animaciones "vacías" activas en otros canvas
+  // Detén animaciones de “vacío”
   ['graficoGastos','graficoDiario','graficoHistorico'].forEach(id => {
     const c = document.getElementById(id);
     if (c) stopEmptyAnim(c);
@@ -2650,11 +2869,6 @@ function renderGraficoDiario(mesFiltrado) {
   stopEmptyAnim(canvas);
 
   const ctx = canvas.getContext("2d");
-  const rect = canvas.getBoundingClientRect();
-  const w = Math.max(300, rect.width || canvas.clientWidth || 300);
-  const h = Math.max(200, rect.height || 400);
-  canvas.width = w; canvas.height = h;
-
   if (chartDiario) chartDiario.destroy();
 
   const isDark = body.classList.contains('dark');
@@ -2665,16 +2879,16 @@ function renderGraficoDiario(mesFiltrado) {
     data: {
       labels,
       datasets: [
-        { label: "Gastos", data: datosGastos, backgroundColor: "#e74c3c" },
-        { label: "Beneficios", data: datosBeneficios, backgroundColor: "#2ecc71" }
+        { label: "Gastos", data: datosGastos, backgroundColor: "#e74c3c", maxBarThickness: 14 },
+        { label: "Beneficios", data: datosBeneficios, backgroundColor: "#2ecc71", maxBarThickness: 14 }
       ]
     },
     options: {
       ...baseBarOpts,
-      plugins: { legend: { position: "top", labels: { color: tickColor } } },
+      plugins: { legend: { position: "top", labels: { color: tickColor, font: { size: 11 } } } },
       scales: {
-        x: { ticks: { color: tickColor } },
-        y: { ticks: { color: tickColor } }
+        x: { ticks: { color: tickColor, font: { size: 10 } } },
+        y: { ticks: { color: tickColor, font: { size: 10 } } }
       }
     }
   });
@@ -2744,7 +2958,7 @@ function totalsForMonth(m){
 function renderGraficoHistorico() {
   if (!graficoHistoricoCanvas || !selectMesHistorico) return;
 
-  // 🔻 Detén animaciones "vacías" activas en otros canvas
+  // Detén animaciones de “vacío”
   ['graficoGastos','graficoDiario','graficoHistorico'].forEach(id => {
     const c = document.getElementById(id);
     if (c) stopEmptyAnim(c);
@@ -2756,12 +2970,6 @@ function renderGraficoHistorico() {
   const ctx = graficoHistoricoCanvas.getContext("2d");
   if (typeof Chart === 'undefined') { startEmptyAnim(graficoHistoricoCanvas, "Cargando gráficos…"); return; }
 
-  const rect = graficoHistoricoCanvas.getBoundingClientRect();
-  const w = Math.max(300, rect.width || graficoHistoricoCanvas.clientWidth || 300);
-  const h = Math.max(200, rect.height || 400);
-  graficoHistoricoCanvas.width = w;
-  graficoHistoricoCanvas.height = h;
-
   if (chartHistorico) chartHistorico.destroy();
 
   const showNoData = () => {
@@ -2769,7 +2977,7 @@ function renderGraficoHistorico() {
     if (balanceHistorico) {
       balanceHistorico.textContent = "";
       balanceHistorico.style.display = "none";
-      balanceHistorico.classList.remove('balance-verde','balance-amarillo','balance-naranja','balance-rojo');
+      balanceHistorico.className = ''; // limpia clases de color
     }
   };
 
@@ -2787,15 +2995,15 @@ function renderGraficoHistorico() {
     data: {
       labels: ["Gastos", "Beneficios"],
       datasets: [
-        { label: sel, data: [t.gastos, t.beneficios], backgroundColor: ["#e74c3c", "#2ecc71"] }
+        { label: sel, data: [t.gastos, t.beneficios], backgroundColor: ["#e74c3c", "#2ecc71"], maxBarThickness: 42 }
       ]
     },
     options: {
       ...baseBarOpts,
-      plugins: { legend: { labels: { color: tickColor } } },
+      plugins: { legend: { labels: { color: tickColor, font: { size: 11 } } } },
       scales: {
-        x: { ticks: { color: tickColor } },
-        y: { ticks: { color: tickColor } }
+        x: { ticks: { color: tickColor, font: { size: 10 } } },
+        y: { ticks: { color: tickColor, font: { size: 10 } } }
       }
     }
   });
@@ -3974,12 +4182,24 @@ function initOnboarding(){
 }
 initOnboarding();
 
+function ensureChartWrappers(){
+  ['graficoGastos','graficoDiario','graficoHistorico'].forEach(id=>{
+    const c = document.getElementById(id);
+    if (!c || c.parentElement?.classList.contains('chartbox')) return;
+    const box = document.createElement('div');
+    box.className = 'chartbox';
+    c.parentNode.insertBefore(box, c);
+    box.appendChild(c);
+  });
+}
+
 // -------------------- Inicial --------------------
 populateSelectHistorico();
 if (selectMesHistorico){
   selectMesHistorico.addEventListener('change', renderGraficoHistorico);
 }
 
+ensureChartWrappers();
 setTituloGraficoDiario();
 renderTabla();
 setupSortingUI();
