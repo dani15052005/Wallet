@@ -938,7 +938,50 @@ overlay.addEventListener('click', (e) => {
     }
     body.dark .recur-empty canvas{
       filter: drop-shadow(0 2px 6px rgba(0,0,0,.5));
+      /* Altura uniforme de cada vista */
+.page{
+  min-height: calc(100vh - 64px - var(--bottomBarH, 0px) - env(safe-area-inset-bottom, 0px));
+  display:flex; flex-direction:column;
+}
+
+/* Contenedor con bordes redondos; SIN fondo propio */
+.panel{
+  border:1px solid var(--border-color,#e5e7eb);
+  border-radius:12px;
+  background: transparent !important;   /* << clave */
+  padding:12px;
+}
+body.dark .panel{
+  border-color:#333;
+  background: transparent !important;   /* << clave */
+}
+
+/* Cajas de “vacío” dentro del panel con altura cómoda */
+.panel .empty-box{ min-height: 220px; }
     }
+/* ===== FONDO LIMPIO (la página manda su color) ===== */
+
+/* Las vistas no deben pintar un color propio */
+.page{
+  background: transparent !important;
+}
+
+/* Estas secciones (histórico, % por cat., diario, recurrentes) sin fondo ni sombra */
+#seccionHistorico,
+#seccionGraficoPorcentaje,
+#seccionGraficoDiario,
+#seccionRecurrentes{
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+/* El canvas nunca debe oscurecer: */
+#graficoHistorico,
+#graficoGastos,
+#graficoDiario{
+  background: transparent !important;
+}
   `;
   const s = document.createElement('style');
   s.textContent = css;
@@ -1374,11 +1417,13 @@ body.menu-open #menu:has(li:hover) li.active{
   // Sección nueva (queda oculta por defecto)
   const section = document.createElement('section');
   section.id = 'seccionRecurrentes';
-  section.className = 'oculto';
+  section.className = 'oculto page';
   section.innerHTML = `
-    <h2 style="margin:.25rem 0 1rem">⚙️ Gestionar recurrentes</h2>
-    <div id="recurManagerList" class="recur-list" style="gap:.6rem"></div>
-  `;
+   <h2 style="margin:.25rem 0 1rem">⚙️ Gestionar recurrentes</h2>
+   <div class="panel">
+     <div id="recurManagerList" class="recur-list" style="gap:.6rem"></div>
+  </div>
+`;
   main.appendChild(section);
     // (tras: main.appendChild(section);)
   if (!menu) {
@@ -1437,7 +1482,7 @@ function selectSection(seccionId){
   if (seccionId === "seccionGraficoPorcentaje"){ if (chartPorcentaje) chartPorcentaje.destroy(); renderGraficoPorcentaje(mk); }
   if (seccionId === "seccionGraficoDiario"){ if (chartDiario) chartDiario.destroy(); setTituloGraficoDiario(mk); renderGraficoDiario(mk); }
   if (seccionId === "seccionHistorico"){ if (chartHistorico) chartHistorico.destroy(); renderGraficoHistorico(); }
-
+  if (seccionId === "seccionRecurrentes"){ renderRecurrentManager(); }
   // marcar activo en la barra
   document.querySelectorAll('#bottomNav button[data-target]').forEach(b => {
   if (b.dataset.target === seccionId) b.setAttribute('aria-current','page');
@@ -1980,8 +2025,9 @@ function renderRecurrentManager(){
     list.appendChild(box);
 
     const c = box.querySelector('#recurEmptyCanvas');
-    // 👇 Usa TU API: 2º parámetro = texto (nada de objetos)
-    startEmptyAnim(c, "No hay reglas recurrentes guardadas.");
+ requestAnimationFrame(() => {
+   startEmptyAnim(c, "No hay reglas recurrentes guardadas.");
+ });
     // Quita cualquier mensaje estático duplicado bajo la sección
 const sec = document.getElementById('seccionRecurrentes');
 sec?.querySelectorAll(':scope > p, :scope > .empty, :scope > .mensaje, :scope > .note')
@@ -2401,13 +2447,8 @@ function startEmptyAnim(canvas, text = "Sin datos", opts = {}) {
     const t = now - state.t0;
     ({ ctx, wCss, hCss } = size());
 
-    // Fondo sutil
+    // Fondo totalmente transparente (se ve el de la página)
     ctx.clearRect(0,0,wCss,hCss);
-    const grad = ctx.createRadialGradient(wCss/2, hCss/2, 20, wCss/2, hCss/2, Math.max(wCss,hCss)/1.2);
-    grad.addColorStop(0, isDark()? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)');
-    grad.addColorStop(1, 'transparent');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,wCss,hCss);
 
     // Caja
     drawBox(t);
@@ -2506,9 +2547,6 @@ function renderGraficoPorcentaje(mesFiltrado) {
   const canvas = document.getElementById("graficoGastos");
   if (typeof Chart === 'undefined') { startEmptyAnim(canvas, "Cargando gráficos…"); return; }
 
-  canvas.style.height = '400px';
-  canvas.style.maxHeight = '400px';
-
   if (Object.keys(categorias).length === 0) {
     if (chartPorcentaje) chartPorcentaje.destroy();
     startEmptyAnim(canvas, "No hay gastos este mes");
@@ -2534,7 +2572,7 @@ function renderGraficoPorcentaje(mesFiltrado) {
   const bgColors    = labels.map(lbl => colorForCategory(lbl));
 
   const hover = Math.min(12, Math.max(6, Math.round(rect.width * 0.02)));
-  const pad   = hover + 12;
+  const pad   = hover + 8;
 
   chartPorcentaje = new Chart(ctx, {
     type: "pie",
@@ -2609,7 +2647,6 @@ function renderGraficoDiario(mesFiltrado) {
 
   const canvas = document.getElementById("graficoDiario");
   if (typeof Chart === 'undefined') { startEmptyAnim(canvas, "Cargando gráficos…"); return; }
-  canvas.style.maxHeight = "400px";
 
   const noData = datosGastos.every(v => v === 0) && datosBeneficios.every(v => v === 0);
   if (noData) {
@@ -2724,7 +2761,6 @@ function renderGraficoHistorico() {
   const sec = document.getElementById("seccionHistorico");
   if (sec && sec.classList.contains("oculto")) return;
 
-  graficoHistoricoCanvas.style.maxHeight = "400px";
   const ctx = graficoHistoricoCanvas.getContext("2d");
   if (typeof Chart === 'undefined') { startEmptyAnim(graficoHistoricoCanvas, "Cargando gráficos…"); return; }
 

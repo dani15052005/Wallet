@@ -1310,3 +1310,164 @@ body.dark .empty-state h3{ color:#81c995; }
   margin: 0 !important;
   padding: 0 !important;
 }
+
+/* ---------- Estado vacío común a todas las secciones ---------- */
+.empty,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(220px, 40vh, 420px);
+  padding: 28px;
+  text-align: center;
+  background: var(--panel-bg, #171717);
+  border: 1px solid var(--panel-border, rgba(255,255,255,.06));
+  border-radius: var(--radius, 16px);
+  box-shadow: 0 12px 30px rgba(0,0,0,.28);
+}
+
+/* Si en algún lado la caja estaba posicionada absoluta, lo anulamos */
+#recurrentes .empty,
+#recurrentes .empty-state {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+}
+
+.empty img, .empty svg {
+  width: 220px;
+  max-width: 70%;
+  height: auto;
+  opacity: .95;
+}
+.empty p { margin-top: 14px; opacity: .9; }
+
+:root{
+  --header-h: 64px;     /* ajusta si tu header mide distinto */
+  --tabbar-h: 72px;     /* ajusta a la altura de tu bottom-nav */
+  --radius: 16px;
+  --page-bg: #0f0f0f;
+  --panel-bg: #171717;
+  --panel-border: rgba(255,255,255,.06);
+  --panel-bg: var(--page-bg); /* <— panel y fondo igualitos */
+}
+
+/* Contenedor de página común */
+.page{
+  min-height: calc(100dvh - var(--header-h) - var(--tabbar-h));
+  padding: 16px;
+  background: var(--page-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.controls-row{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Select estilizado y alineado en iOS/Android */
+.select-wrap{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.select-wrap select{
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  height: 40px;
+  line-height: 40px;
+  padding: 0 40px 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  color: #eaeaea;
+  font-size: 16px;
+}
+.select-wrap .chev{
+  width: 18px; height: 18px;
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  opacity: .8;
+}
+
+/* Ajustes finos para iOS Safari */
+@supports (-webkit-touch-callout: none) {
+  .select-wrap select{ padding-right: 34px; }
+}
+
+/* Evita que el select “salte” en pantallas muy estrechas */
+@media (max-width: 420px){
+  .controls-row label{ font-size: 16px; }
+  .select-wrap select{ max-width: 220px; }
+}
+
+/* === Altura única para gráficos y estados vacíos === */
+:root{
+  /* Sube/baja este valor si quieres más/menos alto en TODAS las páginas */
+  --panelPlotH: 320px;
+}
+
+/* Canvases de las cuatro vistas + canvas vacío de recurrentes */
+#seccionGraficoPorcentaje canvas,
+#seccionGraficoDiario canvas,
+#seccionHistorico canvas,
+#recurManagerList #recurEmptyCanvas{
+  display:block;
+  width:100% !important;
+  max-width:100% !important;
+  min-height:var(--panelPlotH) !important;
+  height:var(--panelPlotH) !important;
+  max-height:var(--panelPlotH) !important;
+}
+
+/* Quitar completamente recuadros/sombras dentro de estas secciones */
+#seccionGraficoPorcentaje,
+#seccionGraficoDiario,
+#seccionHistorico,
+#seccionRecurrentes{
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Por si quedara algún borde del “vacío de recurrentes”, lo anulamos */
+#recurManagerList .empty-box{
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Encabezados de las cuatro páginas más compactos */
+#seccionGraficoPorcentaje h2,
+#seccionGraficoDiario h2,
+#seccionHistorico h2,
+#seccionRecurrentes h2{
+  margin: .25rem 0 .6rem !important;
+}
+
+/* Secciones sin “aire” extra abajo */
+#seccionGraficoPorcentaje,
+#seccionGraficoDiario,
+#seccionHistorico,
+#seccionRecurrentes{
+  margin-bottom: .9rem !important;
+  padding-bottom: .4rem !important;
+}
+
+/* Tarjeta recordatorio de recurrentes más recogida */
+.recur-card{
+  margin: .5rem 0 !important;
+  padding: .6rem !important;
+}
+
+/* Vacío de recurrentes: menos alto y menos padding */
+#recurManagerList .empty-box{
+  padding: 8px 0 !important;
+}

@@ -90,7 +90,7 @@
     </div>
 
     <!-- Sección formulario -->
-    <section id="seccionFormulario">
+    <section id="seccionFormulario" class="page">
       <div id="presupuesto-container">
         <label for="presupuesto">Presupuesto mensual (€):</label>
         <input type="number" id="presupuesto" placeholder="Ej. 1000">
@@ -165,22 +165,48 @@
       </div>
     </section>
 
-    <section id="seccionGraficoPorcentaje" class="oculto">
+    <section id="seccionGraficoPorcentaje" class="oculto page">
       <h2>📊 Distribución de Gastos</h2>
-      <canvas id="graficoGastos"></canvas>
+      <div class="panel">
+  <canvas id="graficoGastos"></canvas>
+  <!-- opcional: estado vacío -->
+  <div id="emptyPorcentaje" class="empty-state" hidden>
+    <p>No hay datos para mostrar.</p>
+  </div>
+</div>
     </section>
 
-    <section id="seccionGraficoDiario" class="oculto">
+    <section id="seccionGraficoDiario" class="oculto page">
       <h2 id="tituloGraficoDiario">📊 Gastos vs Beneficios</h2>
-      <canvas id="graficoDiario"></canvas>
+      <div class="panel">
+  <canvas id="graficoDiario"></canvas>
+  <!-- opcional -->
+  <div id="emptyDiario" class="empty-state" hidden>
+    <p>No hay datos este mes.</p>
+  </div>
+</div>
     </section>
 
-    <section id="seccionHistorico" class="oculto">
+    <section id="seccionHistorico" class="oculto page">
       <h2>📅 Histórico de Meses</h2>
-      <label for="selectMesHistorico">Selecciona un mes:</label>
-      <select id="selectMesHistorico"></select>
-      <canvas id="graficoHistorico" style="margin-top: 1rem;"></canvas>
-      <div id="balanceHistorico" style="margin-top: 1rem; font-weight:bold;"></div>
+      <div class="controls-row">
+  <label for="selectMesHistorico">Selecciona un mes:</label>
+  <div class="select-wrap">
+    <select id="selectMesHistorico"></select>
+    <svg class="chev" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+</div>
+      <div class="panel" style="margin-top: 1rem;">
+  <canvas id="graficoHistorico"></canvas>
+  <!-- opcional -->
+  <div id="emptyHistorico" class="empty-state" hidden>
+    <p>No existen datos todavía</p>
+  </div>
+</div>
+<div id="balanceHistorico" style="margin-top: 1rem; font-weight:bold;"></div>
     </section>
   </main>
 
