@@ -119,7 +119,6 @@ body.dark .recur-card{ border-color:#333; }
 
 /* Botones XS coherentes con la app */
 body.dark .btn-xs{ border-color:#333; background:#111; color:#eee; }
-.btn-primary-xs{ border-color:#4caf50; }
 /* Botones XS (visibles en light mode) */
 .btn-xs{
   padding:.35rem .6rem;
@@ -213,7 +212,6 @@ body.dark .btn-danger-xs{
 }
 
 /* Botón Guardar un poquito más grande */
-/* Botón Guardar un poquito más grande */
 #catBudgetGuardar{
   padding: calc(.5rem + 2px) calc(.8rem + 2px);
   font-size: .98rem;
@@ -295,7 +293,37 @@ body.dark.menu-open #menu li.active:hover{
   background: rgba(255,255,255,.12) !important;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.35) !important;
 }
+/* ===== Vacío centrado en Gestionar recurrentes ===== */
+#recurManagerList .empty-box{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:240px; padding:16px; gap:10px;
+  border-radius:12px; border:1px dashed var(--border-color,#e5e7eb);
+  background:rgba(0,0,0,.02); text-align:center;
+}
+body.dark #recurManagerList .empty-box{
+  border-color:#333; background:rgba(255,255,255,.03);
+}
+#recurManagerList .empty-msg{
+  opacity:.85; font-weight:600;
+}
+#recurManagerList #recurEmptyCanvas{
+  width:100%; max-width:520px; height:220px;
+}
+/* Vacío de "Gestionar recurrentes" con contraste suave (igual que otras secciones) */
+#recurManagerList .empty-box{
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 12px 0 !important;   /* algo de aire vertical */
+}
 
+body.dark #recurManagerList .empty-box{
+  border: 0 !important;
+  background: transparent !important;
+}
+
+/* Mantén el texto igual */
+#recurManagerList .empty-msg{ opacity: .85; font-weight: 600; }
   `;
   const style = document.createElement('style');
   style.textContent = css;
@@ -613,73 +641,7 @@ body.dark.menu-open #menu li.active:hover{
     #updOverlay, #updCard{ transition:none !important; }
     .upd-blob{ animation:none !important; }
   }
-  /* ====== Nitidez en overlay de actualización ====== */
 
-/* 1) El blur va en una capa de fondo separada, NO en el contenedor del texto */
-.update-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 10080;
-  isolation: isolate; /* aísla capas para que el blur no contamine el texto */
-}
-.update-overlay::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  /* Fondo “bonito” + blur SOLO detrás */
-  background:
-    radial-gradient(60% 80% at 10% 10%, rgba(76,175,80,.25), transparent 60%),
-    radial-gradient(50% 70% at 90% 30%, rgba(0,0,0,.25), transparent 60%),
-    linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.35));
-  backdrop-filter: blur(12px) saturate(140%);
-  -webkit-backdrop-filter: blur(12px) saturate(140%);
-  z-index: 0;
-}
-
-/* 2) El panel y su contenido NUNCA llevan filter */
-.update-card,
-.update-card * {
-  filter: none !important;
-  -webkit-filter: none !important;
-}
-
-/* 3) Panel “glass” sin filtros de rasterizado que suavicen el texto */
-.update-card {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%) scale(1); /* estado final exacto (nítido) */
-  padding: clamp(16px, 3.2vw, 28px);
-  width: min(92vw, 560px);
-  border-radius: 16px;
-  background: rgba(255,255,255,.08);
-  border: 1px solid rgba(255,255,255,.24);
-  box-shadow: 0 12px 40px rgba(0,0,0,.35);
-  z-index: 1;
-  will-change: opacity, transform;
-}
-
-/* 4) Animación sin dejar el panel en escalas no enteras (que “empañan” la tipografía) */
-@keyframes popIn {
-  from { transform: translate(-50%, -50%) scale(.985); opacity: 0; }
-  to   { transform: translate(-50%, -50%) scale(1);     opacity: 1; }
-}
-.update-card.is-animating { animation: popIn .28s cubic-bezier(.2,.7,.2,1); }
-
-/* 5) Nitidez tipográfica explícita en botones */
-.update-actions .btn,
-.update-card button {
-  -webkit-font-smoothing: antialiased;
-  text-rendering: geometricPrecision;
-  letter-spacing: .01em; /* microajuste opcional */
-}
-
-/* 6) Si aún usas el banner antiguo a pantalla completa, quítale filtros por si acaso */
-.banner-actualizacion,
-.banner-actualizacion * {
-  filter: none !important;
-  -webkit-filter: none !important;
-}
   /* ====== Anti-blur para el overlay de actualización ====== */
 
 /* 1) Aísla la capa del overlay para que el blur del fondo no afecte al texto */
@@ -811,20 +773,6 @@ body.dark #updCard .upd-actions .upd-btn:hover{
   #updCard .upd-actions .upd-btn:hover{
     transform:none;
   }
-}
-  /* El hover “glass” solo en los secundarios */
-#updCard .upd-actions .upd-btn:not(.primary):hover{
-  background: rgba(255,255,255,.24);
-}
-body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
-  background: rgba(255,255,255,.14);
-}
-
-/* Base del primario (verde) */
-#updCard .upd-actions .upd-btn.primary{
-  background: linear-gradient(180deg, #4caf50, #45a049);
-  border-color: #3e9a44;
-  color:#fff;
 }
 
 /* Hover del primario → verde más oscuro (no gris) */
@@ -970,6 +918,32 @@ overlay.addEventListener('click', (e) => {
     }
     rafId = requestAnimationFrame(draw);
   }
+
+  (() => {
+  const css = `
+    /* Estado vacío centrado en "Gestionar recurrentes" */
+    .recur-empty{
+      min-height: 220px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:.6rem;
+      text-align:center;
+    }
+    .recur-empty p{ margin:0; opacity:.85; }
+    .recur-empty canvas{
+      width:200px; height:auto;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,.25));
+    }
+    body.dark .recur-empty canvas{
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,.5));
+    }
+  `;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
+})();
 
   // ---- Focus trap + accesibilidad ----
   function trapFocus(e){
@@ -1144,84 +1118,61 @@ updateNetworkStatus();
 // ===== Actualizaciones del Service Worker – overlay sólido =====
 (function setupSWUpdates(){
   if (!('serviceWorker' in navigator)) return;
+  let regRef, reloaded = false;
 
-  let regRef = null;
-  let reloaded = false;
-
-  const promptReload = (kind = 'major') => {
-    const isPartial = kind === 'partial';
-    openUpdateOverlay({
-      type: kind,
-      title: isPartial ? 'Recursos actualizados' : 'Nueva versión disponible',
-      message: isPartial
-        ? 'Se han actualizado algunos recursos. Recarga para ver los cambios.'
-        : 'Hemos mejorado la app. Recarga para aplicar las novedades.',
-      primaryText: isPartial ? 'Actualizar recursos' : 'Actualizar ahora',
-      secondaryText: 'Más tarde',
-      onPrimary: () => {
-        // Activar el SW en espera y recargar
-        const reg = regRef;
-        if (reg && reg.waiting) {
-          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        } else if (navigator.serviceWorker.controller) {
-          // Fallback por si no capturamos el waiting
-          navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-        }
-        // Pequeño margen para que dispare controllerchange
-        setTimeout(() => location.reload(), 150);
-      }
-    });
-  };
-
-  // 1) Tu listener original de mensajes (lo mantenemos)
-  navigator.serviceWorker.addEventListener('message', (event) => {
-    const data = event.data;
-    if (!data) return;
-    if (data.type === 'SW_UPDATED') promptReload('major');
-    if (data.type === 'SW_UPDATED_PARTIAL') promptReload('partial');
+  const show = (kind='major') => openUpdateOverlay({
+    type: kind,
+    title: kind==='partial' ? 'Recursos actualizados' : 'Nueva versión disponible',
+    message: kind==='partial'
+      ? 'Se han actualizado algunos recursos. Recarga para ver los cambios.'
+      : 'Hemos mejorado la app. Recarga para aplicar las novedades.',
+    primaryText: kind==='partial' ? 'Actualizar recursos' : 'Actualizar ahora',
+    secondaryText: 'Más tarde',
+    onPrimary: () => {
+      if (regRef?.waiting) regRef.waiting.postMessage({type:'SKIP_WAITING'});
+      else navigator.serviceWorker.controller?.postMessage({type:'SKIP_WAITING'});
+      setTimeout(() => location.reload(), 150);
+    }
   });
 
-  // 2) Detectar updates vía Registration API (waiting/updatefound)
-  navigator.serviceWorker.getRegistration().then((reg) => {
+  const wire = (reg) => {
     if (!reg) return;
     regRef = reg;
 
-    // Ya hay un SW esperando al cargar
-    if (reg.waiting && navigator.serviceWorker.controller) {
-      promptReload('major');
-    }
+    // 1) Si ya hay uno esperando (pasa si abriste la pestaña tras publicar)
+    if (reg.waiting && navigator.serviceWorker.controller) show('major');
 
-    // Cuando llega una nueva versión
+    // 2) Nueva versión encontrada → esperar a "installed"
     reg.addEventListener('updatefound', () => {
       const sw = reg.installing;
       if (!sw) return;
       sw.addEventListener('statechange', () => {
-        if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-          // Nueva versión lista (la vieja sigue controlando)
-          promptReload('major');
-        }
+        if (sw.state === 'installed' && navigator.serviceWorker.controller) show('major');
       });
     });
+
+    // 3) Fallback por si algún evento se pierde (Safari, pestaña dormida…)
+    setTimeout(() => { if (reg.waiting && navigator.serviceWorker.controller) show('major'); }, 2000);
+  };
+
+  navigator.serviceWorker.addEventListener('message', (evt) => {
+    if (evt.data?.type === 'SW_UPDATED') show('major');
+    if (evt.data?.type === 'SW_UPDATED_PARTIAL') show('partial');
   });
 
-  // 3) Si cambia el controller tras SKIP_WAITING, asegura un reload único
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (reloaded) return;
-    reloaded = true;
-    location.reload();
+  navigator.serviceWorker.getRegistration().then((reg) => {
+    wire(reg);
+    reg?.update();                       // chequeo inmediato al cargar
   });
 
-  // 4) Re-chequear al volver la pestaña al foco (útil con Live Server)
+  // Re-chequear al volver al foco y cada 15 min
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'visible') return;
-    navigator.serviceWorker.getRegistration().then((reg) => {
-      if (!reg) return;
-      regRef = reg;
-      reg.update(); // busca versiones nuevas
-      if (reg.waiting && navigator.serviceWorker.controller) {
-        promptReload('major');
-      }
-    });
+    if (document.visibilityState === 'visible') regRef?.update();
+  });
+  setInterval(() => regRef?.update(), 15 * 60 * 1000);
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!reloaded){ reloaded = true; location.reload(); }
   });
 })();
 
@@ -1471,6 +1422,13 @@ document.body.appendChild(menuOverlay);
 // -------- Bottom Nav (móvil/tablet): crea/actualiza/borra --------
 function selectSection(seccionId){
   document.querySelectorAll('main section').forEach(s => s.classList.add('oculto'));
+
+  // 🔻 Detén animaciones "vacías" activas en otros canvas
+  ['graficoGastos','graficoDiario','graficoHistorico'].forEach(id => {
+    const c = document.getElementById(id);
+    if (c) stopEmptyAnim(c);
+  });
+
   document.getElementById(seccionId)?.classList.remove('oculto');
   (document.querySelector('main') || document.body).scrollIntoView({ behavior:'smooth', block:'start' });
 
@@ -1816,17 +1774,9 @@ bar.classList.remove("ok","warn","over");
 bar.classList.add(status);
 bar.style.width = `${pct}%`;
 
-/* 4) Memoriza ya el nuevo estado (evita re-animaciones “dobles”) */
-const updateMemo = () => {
-  _lastCatPct.set(cat, pct);
-  _lastCatStatus.set(cat, status);
-};
-
-if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-  updateMemo();
-} else {
-  bar.addEventListener('transitionend', updateMemo, { once:true });
-}
+/* 4) Memoriza YA el nuevo estado (evita re-animaciones por renders seguidos) */
+_lastCatPct.set(cat, pct);
+_lastCatStatus.set(cat, status);
   });
 }
 
@@ -2011,13 +1961,38 @@ function removeRecurrentByRid(rid){
 function renderRecurrentManager(){
   const list = document.getElementById('recurManagerList');
   if (!list) return;
+
+  // ❶ Si había una animación anterior en este contenedor, la detenemos
+  const oldCanvas = document.getElementById('recurEmptyCanvas');
+  if (oldCanvas) stopEmptyAnim(oldCanvas);
+
   list.innerHTML = '';
 
+  // ❷ VACÍO: caja centrada + animación en canvas
   if (!recurrents.length){
-    list.innerHTML = `<p style="opacity:.8">No hay reglas recurrentes guardadas.</p>`;
-    return;
+    const box = document.createElement('div');
+    box.className = 'empty-box';
+    box.innerHTML = `
+  <canvas id="recurEmptyCanvas" role="img"
+          aria-label="No hay reglas recurrentes guardadas."></canvas>
+`;
+
+    list.appendChild(box);
+
+    const c = box.querySelector('#recurEmptyCanvas');
+    // 👇 Usa TU API: 2º parámetro = texto (nada de objetos)
+    startEmptyAnim(c, "No hay reglas recurrentes guardadas.");
+    // Quita cualquier mensaje estático duplicado bajo la sección
+const sec = document.getElementById('seccionRecurrentes');
+sec?.querySelectorAll(':scope > p, :scope > .empty, :scope > .mensaje, :scope > .note')
+  .forEach(n => {
+    const txt = (n.textContent || '').trim().toLowerCase();
+    if (txt.includes('no hay reglas recurrentes')) n.remove();
+  });
+    return; // <- importante: no sigas montando filas
   }
 
+  // ❸ LISTADO NORMAL (tu código de siempre)
   const buildRow = (r, editing = false) => {
     const row = document.createElement('div');
     row.className = 'recur-item';
@@ -2064,11 +2039,12 @@ function renderRecurrentManager(){
 
   recurrents.forEach(r => list.appendChild(buildRow(r, false)));
 
-  // foco al abrir
+  // foco al abrir (como ya tenías)
   const parentSection = document.getElementById('seccionRecurrentes');
   const h2 = parentSection?.querySelector('h2');
   if (h2){ h2.setAttribute('tabindex','-1'); setTimeout(()=>h2.focus(), 0); }
 
+  // manejador de clicks (igual que el tuyo)
   list.onclick = async (e) => {
     const btn = e.target.closest('button[data-action]');
     if (!btn) return;
@@ -2100,9 +2076,7 @@ function renderRecurrentManager(){
       recurrents[idx].importe = imp;
       recurrents[idx].freq = freq;
       saveRecurrents();
-      // repintar manager
       renderRecurrentManager();
-      // refrescar recordatorio del mes
       checkRecurrentsReminder();
       showToast("Regla actualizada", { type:"success" });
       return;
@@ -2297,22 +2271,196 @@ function checkRecurrentsReminder(){
 // Mensaje “sin datos” en canvas
 function drawNoDataMessage(canvas, text) {
   const ctx = canvas.getContext('2d');
-  const rect = canvas.getBoundingClientRect();
   const dpr = Math.max(1, window.devicePixelRatio || 1);
 
+  // Que el canvas ocupe el contenedor y tenga un alto mínimo
+  canvas.style.display = 'block';
   canvas.style.width = '100%';
-  canvas.width  = Math.max(1, Math.floor(rect.width  * dpr));
-  canvas.height = Math.max(120, Math.floor(rect.height * dpr));
+  if (!canvas.style.minHeight) canvas.style.minHeight = '240px';
+
+  // Mide tras aplicar estilos
+  const wCss = Math.max(1, canvas.clientWidth || canvas.getBoundingClientRect().width || 300);
+  const hCss = Math.max(120, canvas.clientHeight || canvas.getBoundingClientRect().height || 240);
+
+  // Resolución física acorde al DPR
+  canvas.width  = Math.floor(wCss * dpr);
+  canvas.height = Math.floor(hCss * dpr);
 
   ctx.save();
   ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, rect.width, rect.height);
+  ctx.clearRect(0, 0, wCss, hCss);
   ctx.font = "16px Arial";
   ctx.fillStyle = body.classList.contains('dark') ? "#eee" : "#333";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(text, rect.width / 2, rect.height / 2);
+  ctx.fillText(text, wCss / 2, hCss / 2);
   ctx.restore();
+}
+
+// ===== Animación de "estado vacío" en canvas =====
+const __emptyAnims = new WeakMap(); // canvas -> estado animación
+
+function startEmptyAnim(canvas, text = "Sin datos", opts = {}) {
+  stopEmptyAnim(canvas);
+  const state = {
+    raf: 0,
+    particles: [],
+    text,
+    opts,
+    dpr: Math.max(1, window.devicePixelRatio || 1),
+    resizeHandler: null,
+    t0: performance.now()
+  };
+  __emptyAnims.set(canvas, state);
+
+  canvas.style.display = 'block';
+  canvas.style.width = '100%';
+  if (!canvas.style.minHeight) canvas.style.minHeight = '240px';
+
+  function size() {
+    const wCss = Math.max(1, canvas.clientWidth || canvas.getBoundingClientRect().width || 300);
+    const hCss = Math.max(200, canvas.clientHeight || canvas.getBoundingClientRect().height || 240);
+    canvas.width  = Math.floor(wCss * state.dpr);
+    canvas.height = Math.floor(hCss * state.dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+    return { ctx, wCss, hCss };
+  }
+
+  let { ctx, wCss, hCss } = size();
+  const isDark = () => document.body.classList.contains('dark');
+
+  // Semilla de partículas
+  const count = Math.max(18, Math.round((wCss * hCss) / 40000));
+  state.particles = Array.from({ length: count }).map(() => ({
+    x: wCss/2 + (Math.random()*60 - 30),
+    y: hCss/2 - 10 + (Math.random()*30 - 15),
+    vx: (Math.random()*0.6 - 0.3),
+    vy: -(Math.random()*0.6 + 0.2),
+    r: Math.random()*1.8 + 0.6,
+    a: Math.random()*0.8 + 0.4,
+    hue: 110 + Math.random()*140
+  }));
+
+  function roundRect(ctx, x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y, x+w,y+h, r);
+    ctx.arcTo(x+w,y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    ctx.closePath();
+  }
+
+  function drawBox(t){
+    const cx = wCss/2, cy = hCss/2;
+    const bob = Math.sin(t*0.002) * 6;
+    const y = cy + bob;
+
+    // Sombra
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    ctx.beginPath();
+    ctx.ellipse(cx, y+36, 46, 12, 0, 0, Math.PI*2);
+    ctx.fillStyle = '#000';
+    ctx.fill();
+    ctx.restore();
+
+    // Caja
+    ctx.save();
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    const base = isDark() ? '#a88962' : '#c99c6a';
+    const side = isDark() ? '#8b6f4e' : '#b4895c';
+    const lid  = isDark() ? '#d1b089' : '#e5c79f';
+
+    // cuerpo
+    ctx.fillStyle = base;
+    roundRect(ctx, cx-34, y-28, 68, 44, 8);
+    ctx.fill();
+
+    // franja superior (sombra lateral)
+    ctx.fillStyle = side;
+    roundRect(ctx, cx-34, y-28, 68, 16, 8);
+    ctx.fill();
+
+    // tapa abierta
+    ctx.save();
+    ctx.translate(cx, y-34);
+    ctx.rotate(-0.08 + Math.sin(t*0.003)*0.02);
+    ctx.fillStyle = lid;
+    roundRect(ctx, -40, -10, 80, 18, 6);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  function step(now){
+    const t = now - state.t0;
+    ({ ctx, wCss, hCss } = size());
+
+    // Fondo sutil
+    ctx.clearRect(0,0,wCss,hCss);
+    const grad = ctx.createRadialGradient(wCss/2, hCss/2, 20, wCss/2, hCss/2, Math.max(wCss,hCss)/1.2);
+    grad.addColorStop(0, isDark()? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)');
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,wCss,hCss);
+
+    // Caja
+    drawBox(t);
+
+    // Partículas
+    for (const p of state.particles){
+      p.x += p.vx;
+      p.y += p.vy;
+      p.a -= 0.005;
+      if (p.a <= 0 || p.y < hCss/2 - 60){
+        p.x = wCss/2 + (Math.random()*50 - 25);
+        p.y = hCss/2 - 6;
+        p.vx = (Math.random()*0.6 - 0.3);
+        p.vy = -(Math.random()*0.6 + 0.2);
+        p.r  = Math.random()*1.8 + 0.6;
+        p.a  = Math.random()*0.8 + 0.4;
+        p.hue= 110 + Math.random()*140;
+      }
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `hsla(${p.hue}, 70%, ${isDark()?70:45}%, ${p.a})`;
+      ctx.fill();
+    }
+
+    // Texto
+    ctx.font = "16px Arial";
+    ctx.fillStyle = isDark()? "#eaeaea" : "#333";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(state.text, wCss/2, hCss/2 + 54);
+
+    state.raf = requestAnimationFrame(step);
+  }
+
+  state.resizeHandler = () => {
+    cancelAnimationFrame(state.raf);
+    state.raf = requestAnimationFrame(step);
+  };
+  window.addEventListener('resize', state.resizeHandler, { passive:true });
+
+  state.raf = requestAnimationFrame(step);
+  return state;
+}
+
+function stopEmptyAnim(canvas){
+  const st = __emptyAnims.get(canvas);
+  if (!st) return;
+  cancelAnimationFrame(st.raf);
+  window.removeEventListener('resize', st.resizeHandler);
+  __emptyAnims.delete(canvas);
+  const ctx = canvas.getContext('2d');
+  const w = canvas.clientWidth || canvas.width, h = canvas.clientHeight || canvas.height;
+  ctx.clearRect(0,0,w,h);
 }
 
 // -------------------- Gráficos --------------------
@@ -2334,6 +2482,12 @@ const baseBarOpts = {
 };
 
 function renderGraficoPorcentaje(mesFiltrado) {
+  // 🔻 Detén animaciones "vacías" activas en otros canvas
+  ['graficoGastos','graficoDiario','graficoHistorico'].forEach(id => {
+    const c = document.getElementById(id);
+    if (c) stopEmptyAnim(c);
+  });
+
   const seccion = document.getElementById("seccionGraficoPorcentaje");
   if (seccion && seccion.classList.contains("oculto")) return;
 
@@ -2350,22 +2504,25 @@ function renderGraficoPorcentaje(mesFiltrado) {
     });
 
   const canvas = document.getElementById("graficoGastos");
-    if (typeof Chart === 'undefined') { drawNoDataMessage(canvas, "Cargando gráficos…"); return; }
+  if (typeof Chart === 'undefined') { startEmptyAnim(canvas, "Cargando gráficos…"); return; }
+
   canvas.style.height = '400px';
   canvas.style.maxHeight = '400px';
+
+  if (Object.keys(categorias).length === 0) {
+    if (chartPorcentaje) chartPorcentaje.destroy();
+    startEmptyAnim(canvas, "No hay gastos este mes");
+    return;
+  }
+
+  // Hay datos → asegurar que el canvas no está animándose
+  stopEmptyAnim(canvas);
 
   const rect = canvas.getBoundingClientRect();
   const w = Math.max(300, rect.width || canvas.clientWidth || 300);
   const h = Math.max(200, rect.height || 400);
-  canvas.width = w;
-  canvas.height = h;
+  canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext("2d");
-
-  if (Object.keys(categorias).length === 0) {
-    if (chartPorcentaje) chartPorcentaje.destroy();
-    drawNoDataMessage(canvas, "No hay gastos este mes");
-    return;
-  }
 
   if (chartPorcentaje) chartPorcentaje.destroy();
 
@@ -2420,10 +2577,16 @@ function renderGraficoPorcentaje(mesFiltrado) {
 }
 
 function renderGraficoDiario(mesFiltrado) {
+  // 🔻 Detén animaciones "vacías" activas en otros canvas
+  ['graficoGastos','graficoDiario','graficoHistorico'].forEach(id => {
+    const c = document.getElementById(id);
+    if (c) stopEmptyAnim(c);
+  });
+
   const sec = document.getElementById("seccionGraficoDiario");
   if (sec && sec.classList.contains("oculto")) return;
 
-  const month = mesFiltrado || mesActual;              // 👈 unifica
+  const month = mesFiltrado || mesActual;
   const [anio, mesNum] = month.split("-").map(Number);
   const diasMes = new Date(anio, mesNum, 0).getDate();
   const labels = Array.from({ length: diasMes }, (_, i) => i + 1);
@@ -2435,7 +2598,7 @@ function renderGraficoDiario(mesFiltrado) {
     : JSON.parse(localStorage.getItem(`gastos_${month}`)) || [];
 
   gastosAMostrar.forEach(g => {
-    if (g.fecha && g.fecha.startsWith(month)) {        // 👈 aquí también
+    if (g.fecha && g.fecha.startsWith(month)) {
       const dia = parseInt(g.fecha.slice(-2), 10) - 1;
       if (dia >= 0 && dia < diasMes) {
         if (g.tipo === "gasto") datosGastos[dia] += g.importe;
@@ -2445,21 +2608,23 @@ function renderGraficoDiario(mesFiltrado) {
   });
 
   const canvas = document.getElementById("graficoDiario");
-    if (typeof Chart === 'undefined') { drawNoDataMessage(canvas, "Cargando gráficos…"); return; }
+  if (typeof Chart === 'undefined') { startEmptyAnim(canvas, "Cargando gráficos…"); return; }
   canvas.style.maxHeight = "400px";
-  const ctx = canvas.getContext("2d");
-  const rect = canvas.getBoundingClientRect();
-  const w = Math.max(300, rect.width || canvas.clientWidth || 300);
-  const h = Math.max(200, rect.height || 400);
-  canvas.width = w;
-  canvas.height = h;
 
   const noData = datosGastos.every(v => v === 0) && datosBeneficios.every(v => v === 0);
   if (noData) {
     if (chartDiario) chartDiario.destroy();
-    drawNoDataMessage(canvas, "No hay datos para este mes");
+    startEmptyAnim(canvas, "No hay datos para este mes");
     return;
   }
+
+  stopEmptyAnim(canvas);
+
+  const ctx = canvas.getContext("2d");
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.max(300, rect.width || canvas.clientWidth || 300);
+  const h = Math.max(200, rect.height || 400);
+  canvas.width = w; canvas.height = h;
 
   if (chartDiario) chartDiario.destroy();
 
@@ -2517,23 +2682,23 @@ function getAvailableMonths(){
 
 function populateSelectHistorico(){
   if (!selectMesHistorico) return;
-  const current = selectMesHistorico.value;
-  const months = getAvailableMonths();
+  const months = getAvailableMonths(); // ordenados asc
   selectMesHistorico.innerHTML = '';
-  const optAll = document.createElement('option');
-  optAll.value = 'todos';
-  optAll.textContent = 'Todos los meses';
-  selectMesHistorico.appendChild(optAll);
+
   months.forEach(m => {
     const opt = document.createElement('option');
     opt.value = m;
     opt.textContent = m;
     selectMesHistorico.appendChild(opt);
   });
-  if ([...selectMesHistorico.options].some(o => o.value === current)) {
-    selectMesHistorico.value = current;
+
+  // Por defecto: el mes actual si existe; si no, el más reciente disponible
+  if ([...selectMesHistorico.options].some(o => o.value === mesActual)) {
+    selectMesHistorico.value = mesActual;
+  } else if (months.length) {
+    selectMesHistorico.value = months[months.length - 1];
   } else {
-    selectMesHistorico.value = 'todos';
+    selectMesHistorico.value = '';
   }
 }
 
@@ -2550,95 +2715,67 @@ function totalsForMonth(m){
 function renderGraficoHistorico() {
   if (!graficoHistoricoCanvas || !selectMesHistorico) return;
 
+  // 🔻 Detén animaciones "vacías" activas en otros canvas
+  ['graficoGastos','graficoDiario','graficoHistorico'].forEach(id => {
+    const c = document.getElementById(id);
+    if (c) stopEmptyAnim(c);
+  });
+
   const sec = document.getElementById("seccionHistorico");
   if (sec && sec.classList.contains("oculto")) return;
 
   graficoHistoricoCanvas.style.maxHeight = "400px";
   const ctx = graficoHistoricoCanvas.getContext("2d");
-    if (typeof Chart === 'undefined') { drawNoDataMessage(graficoHistoricoCanvas, "Cargando gráficos…"); return; }
-    const rect = graficoHistoricoCanvas.getBoundingClientRect();
-    const w = Math.max(300, rect.width || graficoHistoricoCanvas.clientWidth || 300);
-    const h = Math.max(200, rect.height || 400);
-    graficoHistoricoCanvas.width = w;
-    graficoHistoricoCanvas.height = h;
-    const sel = selectMesHistorico.value || "todos";
+  if (typeof Chart === 'undefined') { startEmptyAnim(graficoHistoricoCanvas, "Cargando gráficos…"); return; }
+
+  const rect = graficoHistoricoCanvas.getBoundingClientRect();
+  const w = Math.max(300, rect.width || graficoHistoricoCanvas.clientWidth || 300);
+  const h = Math.max(200, rect.height || 400);
+  graficoHistoricoCanvas.width = w;
+  graficoHistoricoCanvas.height = h;
 
   if (chartHistorico) chartHistorico.destroy();
 
   const showNoData = () => {
-  drawNoDataMessage(graficoHistoricoCanvas, "No existen datos todavía");
-  if (balanceHistorico) {
-    balanceHistorico.textContent = "";
-    balanceHistorico.style.display = "none";
-    balanceHistorico.classList.remove('balance-verde','balance-amarillo','balance-naranja','balance-rojo');
-  }
-};
-
-  const showBalance = (text, val) => {
-    if (!balanceHistorico) return;
-    balanceHistorico.style.display = "";
-    balanceHistorico.textContent = text;
-    setBalanceColor(balanceHistorico, val);
+    startEmptyAnim(graficoHistoricoCanvas, "No existen datos todavía");
+    if (balanceHistorico) {
+      balanceHistorico.textContent = "";
+      balanceHistorico.style.display = "none";
+      balanceHistorico.classList.remove('balance-verde','balance-amarillo','balance-naranja','balance-rojo');
+    }
   };
+
+  const sel = selectMesHistorico.value || mesActual;
+  const t = totalsForMonth(sel);
+  if ((t.gastos ?? 0) === 0 && (t.beneficios ?? 0) === 0) { showNoData(); return; }
+
+  stopEmptyAnim(graficoHistoricoCanvas);
 
   const isDark = body.classList.contains('dark');
   const tickColor = isDark ? '#fff' : '#000';
 
-  if (sel === "todos") {
-    const months = getAvailableMonths();
-    if (months.length === 0) { showNoData(); return; }
-
-    const gastosData = [], beneficiosData = [];
-    months.forEach(m => {
-      const t = totalsForMonth(m);
-      gastosData.push(t.gastos);
-      beneficiosData.push(t.beneficios);
-    });
-
-    chartHistorico = new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: months,
-        datasets: [
-          { label: "Gastos", data: gastosData, backgroundColor: "#e74c3c" },
-          { label: "Beneficios", data: beneficiosData, backgroundColor: "#2ecc71" }
-        ]
-      },
-      options: {
-        ...baseBarOpts,
-        plugins: { legend: { labels: { color: tickColor } } },
-        scales: {
-          x: { ticks: { color: tickColor } },
-          y: { ticks: { color: tickColor } }
-        }
+  chartHistorico = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: ["Gastos", "Beneficios"],
+      datasets: [
+        { label: sel, data: [t.gastos, t.beneficios], backgroundColor: ["#e74c3c", "#2ecc71"] }
+      ]
+    },
+    options: {
+      ...baseBarOpts,
+      plugins: { legend: { labels: { color: tickColor } } },
+      scales: {
+        x: { ticks: { color: tickColor } },
+        y: { ticks: { color: tickColor } }
       }
-    });
+    }
+  });
 
-    const totalBalance = months.reduce((acc, m) => acc + totalsForMonth(m).balance, 0);
-    showBalance(`Balance acumulado: ${totalBalance.toFixed(2)} €`, totalBalance);
-  } else {
-    const t = totalsForMonth(sel);
-    if ((t.gastos ?? 0) === 0 && (t.beneficios ?? 0) === 0) { showNoData(); return; }
-
-    chartHistorico = new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: ["Gastos", "Beneficios"],
-        datasets: [
-          { label: sel, data: [t.gastos, t.beneficios], backgroundColor: ["#e74c3c", "#2ecc71"] }
-        ]
-      },
-      options: {
-        ...baseBarOpts,
-        plugins: { legend: { labels: { color: tickColor } } },
-        scales: {
-          x: { ticks: { color: tickColor } },
-          y: { ticks: { color: tickColor } }
-        }
-      }
-    });
-
-    showBalance(`Balance ${sel}: ${t.balance.toFixed(2)} €`, t.balance);
+  if (balanceHistorico) {
+    balanceHistorico.style.display = "";
+    balanceHistorico.textContent = `Balance ${sel}: ${t.balance.toFixed(2)} €`;
+    setBalanceColor(balanceHistorico, t.balance);
   }
 }
 
@@ -2691,7 +2828,6 @@ function renderTabla() {
   // ---- Estado vacío
   if (gastosFiltrados.length === 0) {
     // 👇 ya está vacío arriba; no hace falta volver a vaciar
-    // tabla.innerHTML = "";  <-- elimina esta línea en tu versión
     emptyStateMsg.textContent =
       (buscarCategoria.value || "").trim()
         ? `No hay resultados para “${buscarCategoria.value}”.`
@@ -2738,52 +2874,24 @@ function renderTabla() {
     tdAcc.className = 'acciones';
 
     const bEdit = document.createElement('button');
-bEdit.className = 'editar';
-bEdit.type = 'button';
-bEdit.title = 'Editar'; 
-bEdit.setAttribute('aria-label','Editar');
-bEdit.dataset.id = String(gasto.id);
-bEdit.dataset.month = gasto.fecha.slice(0,7);
-bEdit.textContent = '✏️';
+    bEdit.className = 'editar';
+    bEdit.type = 'button';
+    bEdit.title = 'Editar'; 
+    bEdit.setAttribute('aria-label','Editar');
+    bEdit.dataset.id = String(gasto.id);
+    bEdit.dataset.month = gasto.fecha.slice(0,7);
+    bEdit.textContent = '✏️';
 
-const bDel = document.createElement('button');
-bDel.className = 'eliminar';
-bDel.type = 'button';
-bDel.title = 'Eliminar'; 
-bDel.setAttribute('aria-label','Eliminar');
-bDel.dataset.id = String(gasto.id);
-bDel.dataset.month = gasto.fecha.slice(0,7);
-bDel.textContent = '🗑️';
+    const bDel = document.createElement('button');
+    bDel.className = 'eliminar';
+    bDel.type = 'button';
+    bDel.title = 'Eliminar';  
+    bDel.setAttribute('aria-label','Eliminar');
+    bDel.dataset.id = String(gasto.id);
+    bDel.dataset.month = gasto.fecha.slice(0,7);
+    bDel.textContent = '🗑️';
 
-/* Evita que el gesto de swipe intercepte el click de los botones */
-[bEdit, bDel].forEach(b => {
-  b.addEventListener('pointerdown', e => e.stopPropagation(), { passive: true });
-  b.addEventListener('click', e => e.stopPropagation());
-});
-
-bEdit.addEventListener('click', () => {
-  const id = bEdit.dataset.id;
-  const month = bEdit.dataset.month || filtrarMes.value || mesActual;
-  editarGastoPorId(id, month);
-});
-
-bDel.addEventListener('click', async () => {
-  const id = bDel.dataset.id;
-  const month = bDel.dataset.month || filtrarMes.value || mesActual;
-
-  // Confirm antes de eliminar
-  const ok = await appConfirm({
-    title: "Eliminar registro",
-    message: "¿Seguro que quieres eliminar este movimiento?",
-    confirmText: "Eliminar",
-    cancelText: "Cancelar",
-    variant: "danger"
-  });
-  if (!ok) return;
-  eliminarGastoPorId(id, month);
-});
-
-tdAcc.append(bEdit, bDel);
+    tdAcc.append(bEdit, bDel);
     fila.appendChild(tdAcc);
 
     // 👉 Swipe solo en móvil/tablet (ahorras oyentes en desktop)
@@ -2838,10 +2946,6 @@ function makeRowSwipeable(row, gasto){
   if (!row) return;
   const monthKey = String(gasto.fecha || '').slice(0,7);
 
-  const SWIPE_THRESHOLD = 48;  // px para confirmar
-  const SWIPE_MAX = 96;        // límite visual de arrastre
-  const SWIPE_ANGLE_MAX = 30;  // grados (horizontal < 30°)
-
   let startX=0, startY=0, dx=0, dy=0, active=false, decided=false, moved=false;
 
   function reset(animated = true){
@@ -2895,18 +2999,10 @@ function makeRowSwipeable(row, gasto){
     row.classList.remove('swiping');
 
     if (dx <= -SWIPE_THRESHOLD){
-      // ← eliminar con confirm
-      reset(true);
-      const ok = await appConfirm({
-        title: "Eliminar registro",
-        message: "¿Seguro que quieres eliminar este movimiento?",
-        confirmText: "Eliminar",
-        cancelText: "Cancelar",
-        variant: "danger"
-      });
-      if (ok) eliminarGastoPorId(gasto.id, monthKey);
-      return;
-    }
+  reset(true);
+  eliminarGastoPorId(gasto.id, monthKey); // confirma internamente
+  return;
+}
 
     if (dx >= SWIPE_THRESHOLD){
       // → editar
@@ -2957,37 +3053,6 @@ document.addEventListener('pointermove', (e) => {
   btn.style.setProperty('--mx', `${e.clientX - r.left}px`);
   btn.style.setProperty('--my', `${e.clientY - r.top}px`);
 });
-
-// Eliminar SIN modal (usado por el swipe a la izquierda)
-function eliminarGastoRapido(id, monthKey){
-  const ref = getMonthArrayRef(monthKey);
-  const idx = ref.arr.findIndex(g => String(g.id) === String(id));
-  if (idx === -1) return;
-
-  const eliminado = ref.arr[idx];
-
-  // borrado inmediato
-  ref.arr.splice(idx, 1);
-  ref.save();
-  renderTabla();
-
-  // mismo toast con deshacer que usas en el borrado normal
-  showToast('Movimiento eliminado', {
-    type: 'success',
-    duration: 3500,
-    actionText: 'Deshacer',
-    onAction: () => {
-      ref.arr.splice(Math.min(idx, ref.arr.length), 0, eliminado);
-      ref.save();
-      const catKey = capitalizeFirst((eliminado.categoria || "").trim());
-      const mk = String(eliminado.fecha || "").slice(0,7) || monthKey;
-      maybeToastBudgetBackUnder(catKey, mk, eliminado.importe, eliminado.tipo);
-      renderTabla();
-      scrollToRowById(eliminado.id);
-      showToast('Eliminación deshecha', { type: 'info', duration: 1600 });
-    }
-  });
-}
 
 function getMonthArrayRef(monthKey){
   if (monthKey === mesActual){
@@ -3063,19 +3128,22 @@ async function eliminarGastoPorId(id, monthKey) {
   // 🔄 Animación opcional de salida si existe la fila
   const row = tabla.querySelector(`tr[data-id="${cssEscape(id)}"]`);
   if (row) {
-    row.classList.add('fade-out');
-    const cs = getComputedStyle(row);
-    const hasAnim = cs.animationName !== 'none' && parseFloat(cs.animationDuration) > 0;
-    const finish = () => ejecutarBorrado();
-    if (hasAnim) {
-      row.addEventListener('animationend', finish, { once: true });
-      setTimeout(finish, 600); // respaldo por si el evento no llega
-    } else {
-      finish();
-    }
+  row.classList.add('fade-out');
+  const cs = getComputedStyle(row);
+  const hasAnim = cs.animationName !== 'none' && parseFloat(cs.animationDuration) > 0;
+
+  let _fired = false;
+  const finish = () => { if (_fired) return; _fired = true; ejecutarBorrado(); };
+
+  if (hasAnim) {
+    const fallback = setTimeout(finish, 600);
+    row.addEventListener('animationend', () => { clearTimeout(fallback); finish(); }, { once: true });
   } else {
-    ejecutarBorrado();
+    finish();
   }
+} else {
+  ejecutarBorrado();
+}
 }
 
 async function editarGastoPorId(id, monthKey) {
@@ -3418,7 +3486,6 @@ function injectQuickAddSheet(){
 
   // Exponer funciones
   window.openQuickAddSheet = openQA;
-  window.closeQuickAddSheet = closeQA;
 }
 
 function openQuickAddSheet(){
@@ -3682,7 +3749,13 @@ toggleDarkBtn?.addEventListener("click", () => {
     if (chartHistorico.options.scales?.x?.ticks) chartHistorico.options.scales.x.ticks.color = color;
     if (chartHistorico.options.scales?.y?.ticks) chartHistorico.options.scales.y.ticks.color = color;
     chartHistorico.update();
-  }
+
+    const cRecur = document.getElementById('recurEmptyCanvas');
+if (cRecur){
+  stopEmptyAnim(cRecur);
+  startEmptyAnim(cRecur, 'No hay reglas recurrentes guardadas.');
+}
+}
 });
 
 // -------------------- Menú hamburguesa (sin salto al cerrar) --------------------
@@ -3882,7 +3955,6 @@ if (selectMesHistorico){
 setTituloGraficoDiario();
 renderTabla();
 setupSortingUI();
-updateSortUI();
 refreshCategorySuggestions();
 renderCatBudgets();
 checkRecurrentsReminder();
