@@ -300,6 +300,8 @@ body.dark.menu-open #menu li.active:hover{
   const style = document.createElement('style');
   style.textContent = css;
   document.head.appendChild(style);
+
+  
 })();
 
 // 1) Punto verde en el botón del menú
@@ -469,6 +471,588 @@ body.dark.menu-open #menu li.active:hover{
   const s = document.createElement('style');
   s.textContent = css;
   document.head.appendChild(s);
+
+  // ======= Update Overlay (Aurora + Partículas) =======
+(() => {
+  // ---- Estilos (CSS-in-JS) ----
+  const css = `
+  :root{
+    --upd-z: 20050;
+    --upd-card-bg: rgba(255,255,255,.12);
+    --upd-card-bd: rgba(255,255,255,.25);
+    --upd-fg: #111;
+    --upd-fg-soft: rgba(0,0,0,.75);
+    --upd-btn-bg: rgba(255,255,255,.18);
+    --upd-btn-bd: rgba(255,255,255,.4);
+    --upd-btn-fg: #111;
+    --upd-primary: #4caf50;
+    --upd-shadow: 0 20px 60px rgba(0,0,0,.35);
+  }
+  body.dark :root{
+    --upd-card-bg: rgba(17,17,17,.45);
+    --upd-card-bd: rgba(255,255,255,.15);
+    --upd-fg: #eee;
+    --upd-fg-soft: rgba(255,255,255,.85);
+    --upd-btn-bg: rgba(255,255,255,.1);
+    --upd-btn-bd: rgba(255,255,255,.2);
+    --upd-btn-fg: #f3f3f3;
+    --upd-shadow: 0 24px 70px rgba(0,0,0,.6);
+  }
+
+  #updOverlay{
+    position: fixed; inset: 0;
+    z-index: var(--upd-z);
+    display: grid; place-items: center;
+    background: radial-gradient(1200px 600px at 10% 110%, rgba(76,175,80,.10), transparent 60%),
+                radial-gradient(800px 500px at 120% -10%, rgba(33,150,243,.10), transparent 60%),
+                linear-gradient(180deg, rgba(0,0,0,.12), transparent 35%, rgba(0,0,0,.15));
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    opacity: 0; pointer-events: none;
+    transition: opacity .35s ease, transform .35s ease;
+  }
+  #updOverlay.show{ opacity: 1; pointer-events: auto; transform: none; }
+
+  /* Aurora blobs */
+  #updAurora{
+    position:absolute; inset:0; overflow:hidden; pointer-events:none; filter: blur(50px);
+  }
+  .upd-blob{
+    position:absolute; width:420px; height:420px; border-radius:50%;
+    opacity:.55; mix-blend-mode:screen;
+    background: radial-gradient(circle at 30% 30%, rgba(76,175,80,.9), rgba(76,175,80,0) 60%),
+                radial-gradient(circle at 70% 70%, rgba(33,150,243,.8), rgba(33,150,243,0) 60%);
+    animation: updFloat 14s ease-in-out infinite alternate;
+  }
+  .upd-blob.b2{
+    width:520px; height:520px; left:60%; top:10%;
+    background: radial-gradient(circle at 40% 50%, rgba(236,72,153,.85), rgba(236,72,153,0) 60%),
+                radial-gradient(circle at 70% 40%, rgba(250,204,21,.85), rgba(250,204,21,0) 60%);
+    animation-duration: 18s;
+  }
+  .upd-blob.b3{
+    width:480px; height:480px; left:-8%; top:50%;
+    background: radial-gradient(circle at 60% 40%, rgba(56,189,248,.85), rgba(56,189,248,0) 60%),
+                radial-gradient(circle at 30% 70%, rgba(34,197,94,.85), rgba(34,197,94,0) 60%);
+    animation-duration: 22s;
+  }
+  @keyframes updFloat{
+    0%   { transform: translate3d(-10px, 0px, 0) rotate(0deg); }
+    100% { transform: translate3d(10px, -20px, 0) rotate(8deg); }
+  }
+
+  /* Partículas canvas */
+  #updFx{
+    position:absolute; inset:0; pointer-events:none;
+  }
+
+  /* Tarjeta */
+  #updCard{
+    position:relative; width:min(92vw, 760px);
+    border-radius: 20px; padding: 28px 28px;
+    background: var(--upd-card-bg);
+    border: 1px solid var(--upd-card-bd);
+    box-shadow: var(--upd-shadow);
+    color: var(--upd-fg); text-align:center;
+    transform: translateY(8px);
+    opacity: 0;
+    transition: opacity .45s ease .05s, transform .45s ease .05s;
+  }
+  #updOverlay.show #updCard{ opacity:1; transform:none; }
+
+  .upd-badge{
+    display:inline-flex; gap:.5rem; align-items:center;
+    padding:.4rem .7rem; border-radius:999px;
+    background: rgba(76,175,80,.15);
+    border: 1px solid rgba(76,175,80,.35);
+    font-weight:700; letter-spacing:.2px;
+    margin-bottom:.75rem;
+  }
+  .upd-title{
+    font-size: clamp(1.3rem, 1.2rem + 1.4vw, 2.2rem);
+    line-height:1.15; margin: .25rem 0 .35rem; font-weight: 900;
+  }
+  .upd-sub{
+    font-size: clamp(.98rem, .9rem + .35vw, 1.1rem);
+    opacity:.92; margin:.25rem auto 1.2rem; color: var(--upd-fg-soft);
+    max-width: 56ch;
+  }
+
+  .upd-actions{
+    display:flex; flex-wrap:wrap; gap:.6rem; justify-content:center; margin-top:.4rem;
+  }
+  .upd-btn{
+    appearance:none; border:1px solid var(--upd-btn-bd); background: var(--upd-btn-bg);
+    color: var(--upd-btn-fg); font-weight:800; letter-spacing:.2px;
+    padding:.75rem 1rem; border-radius:14px; cursor:pointer;
+    transition: transform .12s ease, box-shadow .12s ease, background .2s ease, opacity .2s ease;
+    will-change: transform, box-shadow;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .upd-btn:hover{ transform: translateY(-1px); box-shadow: 0 10px 28px rgba(0,0,0,.15); }
+  .upd-btn:active{ transform: translateY(0); box-shadow: 0 6px 18px rgba(0,0,0,.18); }
+
+  .upd-btn.primary{
+    background: linear-gradient(180deg, rgba(76,175,80,.95), rgba(76,175,80,.85));
+    border-color: rgba(76,175,80,.9);
+    color:#fff; padding:.9rem 1.15rem;
+  }
+  .upd-kb{
+    display:block; margin-top:.6rem; font-size:.88rem; opacity:.85;
+  }
+
+  /* Footer decorativo */
+  .upd-foot{
+    margin-top:1.1rem; font-size:.88rem; opacity:.75;
+  }
+
+  /* Accesibilidad */
+  #updOverlay[aria-hidden="true"]{ visibility:hidden; }
+  @media (prefers-reduced-motion: reduce){
+    #updOverlay, #updCard{ transition:none !important; }
+    .upd-blob{ animation:none !important; }
+  }
+  /* ====== Nitidez en overlay de actualización ====== */
+
+/* 1) El blur va en una capa de fondo separada, NO en el contenedor del texto */
+.update-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10080;
+  isolation: isolate; /* aísla capas para que el blur no contamine el texto */
+}
+.update-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  /* Fondo “bonito” + blur SOLO detrás */
+  background:
+    radial-gradient(60% 80% at 10% 10%, rgba(76,175,80,.25), transparent 60%),
+    radial-gradient(50% 70% at 90% 30%, rgba(0,0,0,.25), transparent 60%),
+    linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.35));
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  z-index: 0;
+}
+
+/* 2) El panel y su contenido NUNCA llevan filter */
+.update-card,
+.update-card * {
+  filter: none !important;
+  -webkit-filter: none !important;
+}
+
+/* 3) Panel “glass” sin filtros de rasterizado que suavicen el texto */
+.update-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1); /* estado final exacto (nítido) */
+  padding: clamp(16px, 3.2vw, 28px);
+  width: min(92vw, 560px);
+  border-radius: 16px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.24);
+  box-shadow: 0 12px 40px rgba(0,0,0,.35);
+  z-index: 1;
+  will-change: opacity, transform;
+}
+
+/* 4) Animación sin dejar el panel en escalas no enteras (que “empañan” la tipografía) */
+@keyframes popIn {
+  from { transform: translate(-50%, -50%) scale(.985); opacity: 0; }
+  to   { transform: translate(-50%, -50%) scale(1);     opacity: 1; }
+}
+.update-card.is-animating { animation: popIn .28s cubic-bezier(.2,.7,.2,1); }
+
+/* 5) Nitidez tipográfica explícita en botones */
+.update-actions .btn,
+.update-card button {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+  letter-spacing: .01em; /* microajuste opcional */
+}
+
+/* 6) Si aún usas el banner antiguo a pantalla completa, quítale filtros por si acaso */
+.banner-actualizacion,
+.banner-actualizacion * {
+  filter: none !important;
+  -webkit-filter: none !important;
+}
+  /* ====== Anti-blur para el overlay de actualización ====== */
+
+/* 1) Aísla la capa del overlay para que el blur del fondo no afecte al texto */
+#updOverlay{
+  isolation:isolate;
+  transform:none;                 /* evita el scale(1.02) inicial */
+}
+
+/* 2) Orden de capas explícito: blobs y partículas detrás, card delante */
+#updAurora{ z-index:0; }          /* tiene su propio filter: blur(50px) pero no afecta al resto */
+#updFx{ z-index:1; }
+#updCard{ 
+  z-index:2;
+  /* 👇 quita el scale que empana la fuente; deja solo un translate entero si quieres animar */
+  transform: translateY(8px);     
+}
+
+/* 3) Estado final nítido: sin transform ni filters */
+#updOverlay.show #updCard{
+  transform:none;                 /* estado final exacto */
+}
+#updCard, #updCard *{
+  filter:none !important;
+  -webkit-filter:none !important;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+/* 4) Los botones tenían backdrop-filter directamente, lo movemos a un pseudo-elemento
+      para que el texto del botón NO pase por la capa filtrada */
+.upd-btn{
+  position:relative;
+  overflow:hidden;
+  /* Quita el blur directo del botón */
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  font-weight:700;                /* 700 suele renderizar más nítido que 800 en Windows */
+  letter-spacing:.01em;
+}
+.upd-btn::before{
+  content:"";
+  position:absolute; inset:0;
+  z-index:-1;                     /* detrás del contenido del botón */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: var(--upd-btn-bg, rgba(255,255,255,.18));
+  border-radius: inherit;
+}
+
+/* 5) Animación de entrada sin escalados fraccionales (evita texto borroso en tránsito) */
+@keyframes updSlideIn {
+  from { opacity:0; transform: translateY(8px); }
+  to   { opacity:1; transform: none; }
+}
+#updOverlay.show #updCard{
+  animation: updSlideIn .35s cubic-bezier(.2,.7,.2,1);
+}
+@media (prefers-reduced-motion: reduce){
+  #updOverlay.show #updCard{ animation:none !important; }
+}
+/* Tipografía más nítida en el overlay de actualización */
+#updCard, #updCard *{
+  font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, system-ui, -apple-system, "Apple Color Emoji","Segoe UI Emoji";
+  font-synthesis-weight: none;     /* evita negrita sintética */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.upd-title{ font-weight: 700; }    /* título marcado pero no exagerado */
+.upd-sub{   font-weight: 400; }    /* cuerpo normal */
+.upd-btn{   font-weight: 600; }    /* botón legible sin verse “gordo” */
+.upd-btn.primary{ font-weight: 700; }
+
+/* Asegura nitidez extra en botones (por si algún UA suaviza de más) */
+.upd-btn, .upd-btn *{
+  filter: none !important;
+  -webkit-filter: none !important;
+  text-shadow: none !important;
+  letter-spacing: .01em;
+}
+  /* ===== Hover/focus mejorado para botones del overlay ===== */
+#updCard .upd-actions .upd-btn{
+  position: relative;
+  overflow: hidden;                 /* para el brillo */
+  transition: transform .18s ease, box-shadow .18s ease, background .22s ease;
+}
+
+/* Brillo radial que sigue el cursor */
+#updCard .upd-actions .upd-btn::after{
+  content:"";
+  position:absolute; inset:-2px;
+  background: radial-gradient(140px 80px at var(--mx,50%) var(--my,50%),
+                              rgba(255,255,255,.35), transparent 60%);
+  opacity:0; transform: scale(.96);
+  transition: opacity .25s ease, transform .25s ease;
+  pointer-events:none;
+}
+
+#updCard .upd-actions .upd-btn:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px rgba(0,0,0,.18);
+  background: rgba(255,255,255,.24);
+}
+body.dark #updCard .upd-actions .upd-btn:hover{
+  background: rgba(255,255,255,.14);
+}
+#updCard .upd-actions .upd-btn:hover::after{
+  opacity:.65; transform: scale(1);
+}
+
+/* Variante primaria (Actualizar ahora) con gradiente más vivo al hover */
+#updCard .upd-actions .upd-btn.primary:hover{
+  background: linear-gradient(180deg, rgba(76,175,80,1), rgba(56,142,60,.96));
+  box-shadow: 0 16px 42px rgba(76,175,80,.35);
+}
+
+/* Estado de foco accesible (teclado) */
+#updCard .upd-actions .upd-btn:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(76,175,80,.35), 0 12px 32px rgba(0,0,0,.18);
+}
+
+/* Respeto a reduce motion */
+@media (prefers-reduced-motion: reduce){
+  #updCard .upd-actions .upd-btn,
+  #updCard .upd-actions .upd-btn::after{
+    transition: none !important;
+  }
+  #updCard .upd-actions .upd-btn:hover{
+    transform:none;
+  }
+}
+  /* El hover “glass” solo en los secundarios */
+#updCard .upd-actions .upd-btn:not(.primary):hover{
+  background: rgba(255,255,255,.24);
+}
+body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
+  background: rgba(255,255,255,.14);
+}
+
+/* Base del primario (verde) */
+#updCard .upd-actions .upd-btn.primary{
+  background: linear-gradient(180deg, #4caf50, #45a049);
+  border-color: #3e9a44;
+  color:#fff;
+}
+
+/* Hover del primario → verde más oscuro (no gris) */
+#updCard .upd-actions .upd-btn.primary:hover{
+  background: linear-gradient(180deg, #43a047, #2e7d32);
+  box-shadow: 0 16px 42px rgba(76,175,80,.35);
+}
+
+/* Glow del primario en verde */
+#updCard .upd-actions .upd-btn.primary:hover::after{
+  background: radial-gradient(140px 80px at var(--mx,50%) var(--my,50%),
+                              rgba(76,175,80,.45), transparent 60%);
+  opacity:.7;
+}
+
+/* Active del primario (un poco más oscuro aún) */
+#updCard .upd-actions .upd-btn.primary:active{
+  background: linear-gradient(180deg, #2e7d32, #256e2a);
+  box-shadow: 0 8px 22px rgba(76,175,80,.28);
+}
+
+/* Hover “glass” SOLO en los secundarios, nunca en el primario */
+#updCard .upd-actions .upd-btn:not(.primary):hover{
+  background: rgba(255,255,255,.24);
+}
+body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
+  background: rgba(255,255,255,.14);
+}
+
+/* Base del primario en verde */
+#updCard .upd-actions .upd-btn.primary{
+  background-image: linear-gradient(180deg, #4caf50, #45a049) !important;
+  background-color: #4caf50 !important;
+  border-color: #3e9a44 !important;
+  color:#fff !important;
+  -webkit-text-fill-color:#fff;
+}
+
+/* Hover del primario → verde más oscuro (no gris) */
+#updCard .upd-actions .upd-btn.primary:hover,
+#updCard .upd-actions .upd-btn.primary:focus{
+  background-image: linear-gradient(180deg, #2e7d32, #256e2a) !important;
+  background-color:#2e7d32 !important;
+  box-shadow: 0 16px 42px rgba(76,175,80,.35);
+}
+
+/* Active aún un punto más oscuro */
+#updCard .upd-actions .upd-btn.primary:active{
+  background-image: linear-gradient(180deg, #256e2a, #1f5d25) !important;
+  background-color:#256e2a !important;
+  box-shadow: 0 8px 22px rgba(76,175,80,.28);
+}
+  `;
+  const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
+
+  // ---- DOM ----
+  let overlay, card, fxCanvas, ctx, rafId, focusables, lastFocus;
+
+  function buildDOM(){
+    if (document.getElementById('updOverlay')) return;
+
+    overlay = document.createElement('div');
+    overlay.id = 'updOverlay';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-hidden','true');
+
+    const aurora = document.createElement('div');
+    aurora.id = 'updAurora';
+    const b1 = document.createElement('div'); b1.className = 'upd-blob b1';
+    const b2 = document.createElement('div'); b2.className = 'upd-blob b2';
+    const b3 = document.createElement('div'); b3.className = 'upd-blob b3';
+    aurora.append(b1,b2,b3);
+
+    fxCanvas = document.createElement('canvas'); fxCanvas.id = 'updFx';
+
+    card = document.createElement('div'); card.id = 'updCard';
+    card.innerHTML = `
+      <div class="upd-badge">Actualización disponible</div>
+      <h2 class="upd-title">Nueva versión lista para ti</h2>
+      <p class="upd-sub">Hemos mejorado rendimiento, pulido detalles y añadido pequeños extras. Recarga para aplicar los cambios.</p>
+      <div class="upd-actions">
+        <button class="upd-btn primary" id="updPrimary">Actualizar ahora</button>
+        <button class="upd-btn" id="updSecondary">Más tarde</button>
+      </div>
+      <span class="upd-kb">Pulsa <strong>Enter</strong> para actualizar o <strong>Esc</strong> para continuar más tarde.</span>
+      <div class="upd-foot">Gracias por usar la app 💚</div>
+    `;
+
+    
+
+    overlay.append(aurora, fxCanvas, card);
+    document.body.appendChild(overlay);
+
+    // Close on background click (but keep card clicks)
+    // No cerrar al hacer click en el fondo; obliga a usar uno de los botones
+overlay.addEventListener('click', (e) => {
+  if (e.target === overlay) {
+    card.querySelector('#updPrimary')?.focus(); // opcional: devolver foco al CTA
+  }
+});
+  }
+
+  
+
+  // ---- Partículas (sparkles suaves) ----
+  const particles = [];
+  function resizeCanvas(){
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    fxCanvas.width  = Math.floor(fxCanvas.clientWidth  * dpr);
+    fxCanvas.height = Math.floor(fxCanvas.clientHeight * dpr);
+    ctx = fxCanvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+  }
+  function seedParticles(){
+    particles.length = 0;
+    const count = Math.floor((fxCanvas.clientWidth * fxCanvas.clientHeight) / 22000) + 30; // responsivo
+    for (let i=0;i<count;i++){
+      particles.push({
+        x: Math.random()*fxCanvas.clientWidth,
+        y: Math.random()*fxCanvas.clientHeight,
+        r: Math.random()*2 + .6,
+        a: Math.random()*Math.PI*2,
+        s: Math.random()*0.7 + 0.2,
+        hue: 100 + Math.random()*160
+      });
+    }
+  }
+  function draw(){
+    if (!ctx) return;
+    const w = fxCanvas.clientWidth, h = fxCanvas.clientHeight;
+    ctx.clearRect(0,0,w,h);
+    for (const p of particles){
+      p.a += 0.004 + p.s*0.004;
+      p.x += Math.cos(p.a)*p.s;
+      p.y += Math.sin(p.a)*p.s*0.6;
+      if (p.x < -10) p.x = w+10; if (p.x > w+10) p.x = -10;
+      if (p.y < -10) p.y = h+10; if (p.y > h+10) p.y = -10;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `hsla(${p.hue}, 80%, 60%, .7)`;
+      ctx.fill();
+    }
+    rafId = requestAnimationFrame(draw);
+  }
+
+  // ---- Focus trap + accesibilidad ----
+  function trapFocus(e){
+    if (e.key !== 'Tab') return;
+    const nodes = focusables.filter(el => !el.hasAttribute('disabled') && el.offsetParent !== null);
+    if (!nodes.length) return;
+    const first = nodes[0], last = nodes[nodes.length-1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+
+  // ---- API pública ----
+  function openUpdateOverlay(opts = {}){
+    buildDOM();
+
+    // Contenido dinámico
+    const title = (opts.title || (opts.type==='partial' ? 'Recursos actualizados' : 'Nueva versión disponible'));
+    const sub   = (opts.message || (opts.type==='partial'
+                   ? 'Se han actualizado algunos recursos. Recarga para ver los cambios.'
+                   : 'Hemos mejorado la app. Recarga para aplicar las novedades.'));
+    card.querySelector('.upd-title').textContent = title;
+    card.querySelector('.upd-sub').textContent = sub;
+    card.querySelector('#updPrimary').textContent   = opts.primaryText   || (opts.type==='partial' ? 'Actualizar recursos' : 'Actualizar ahora');
+    card.querySelector('#updSecondary').textContent = opts.secondaryText || 'Más tarde';
+
+    overlay.setAttribute('aria-hidden','false');
+    overlay.classList.add('show');
+
+    // Callbacks
+    const primary = card.querySelector('#updPrimary');
+    const secondary = card.querySelector('#updSecondary');
+
+    // Limpia handlers previos
+    primary.onclick = null; secondary.onclick = null;
+
+    primary.onclick = () => { try { opts.onPrimary?.(); } finally { closeUpdateOverlay(); } };
+    secondary.onclick = () => { try { opts.onSecondary?.(); } finally { closeUpdateOverlay(); } };
+
+    // Teclado
+    lastFocus = document.activeElement;
+    const onKey = (e) => {
+      if (e.key === 'Escape'){ e.preventDefault(); secondary.click(); }
+      if (e.key === 'Enter'){ e.preventDefault(); primary.click(); }
+      trapFocus(e);
+    };
+    overlay.addEventListener('keydown', onKey);
+    overlay._onKey = onKey; // guarda para quitar luego
+
+    // Focus inicial
+    focusables = [primary, secondary];
+    setTimeout(() => primary.focus(), 10);
+
+    // Canvas
+    const doMotion = !(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+    if (doMotion){
+      resizeCanvas(); seedParticles(); cancelAnimationFrame(rafId); draw();
+      window.addEventListener('resize', onResize, { passive:true });
+    }
+
+    return () => closeUpdateOverlay();
+  }
+
+  function onResize(){
+    resizeCanvas(); seedParticles();
+  }
+
+  function closeUpdateOverlay(){
+    if (!overlay) return;
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden','true');
+    // Stop fx
+    cancelAnimationFrame(rafId);
+    window.removeEventListener('resize', onResize);
+    // Unbind key
+    if (overlay._onKey) overlay.removeEventListener('keydown', overlay._onKey);
+    // Devuelve foco
+    lastFocus?.focus?.();
+  }
+
+  // Expone funciones
+  window.openUpdateOverlay = openUpdateOverlay;
+  window.closeUpdateOverlay = closeUpdateOverlay;
+})();
 })();
 
 // -------------------- Toasts --------------------
@@ -557,45 +1141,89 @@ window.addEventListener('online', updateNetworkStatus);
 window.addEventListener('offline', updateNetworkStatus);
 updateNetworkStatus();
 
-// SW actualización (banner “recargar”)
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.addEventListener('message', (event) => {
-    if (!event.data) return;
-  
-  function showBanner(message, btnText, onClick) {
-  if (document.getElementById('reloadApp')) return;
-  const refreshBanner = document.createElement('div');
-  refreshBanner.className = 'banner-actualizacion';
-  refreshBanner.setAttribute('role','status');
-  refreshBanner.setAttribute('aria-live','polite');
-  refreshBanner.innerHTML = `${message} <button id="reloadApp">${btnText}</button>`;
+// ===== Actualizaciones del Service Worker – overlay sólido =====
+(function setupSWUpdates(){
+  if (!('serviceWorker' in navigator)) return;
 
-  // 👇 si ya hay banners visibles, apila este debajo sumando la altura
-  const visibles = [...document.querySelectorAll('.banner-actualizacion.show')];
-  const offset = visibles.reduce((h, el) => h + el.offsetHeight, 0);
-  if (offset > 0) refreshBanner.style.top = offset + 'px';
+  let regRef = null;
+  let reloaded = false;
 
-  document.body.appendChild(refreshBanner);
-  setTimeout(() => refreshBanner.classList.add('show'), 50);
-  document.getElementById('reloadApp').addEventListener('click', onClick);
-}
-
-    if (event.data.type === 'SW_UPDATED') {
-      showBanner('Nueva versión disponible.', 'Recargar', () => {
-        if (navigator.serviceWorker.controller) {
+  const promptReload = (kind = 'major') => {
+    const isPartial = kind === 'partial';
+    openUpdateOverlay({
+      type: kind,
+      title: isPartial ? 'Recursos actualizados' : 'Nueva versión disponible',
+      message: isPartial
+        ? 'Se han actualizado algunos recursos. Recarga para ver los cambios.'
+        : 'Hemos mejorado la app. Recarga para aplicar las novedades.',
+      primaryText: isPartial ? 'Actualizar recursos' : 'Actualizar ahora',
+      secondaryText: 'Más tarde',
+      onPrimary: () => {
+        // Activar el SW en espera y recargar
+        const reg = regRef;
+        if (reg && reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        } else if (navigator.serviceWorker.controller) {
+          // Fallback por si no capturamos el waiting
           navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
         }
-        window.location.reload();
-      });
-    }
-    if (event.data.type === 'SW_UPDATED_PARTIAL') {
-      showBanner('Algunos recursos se han actualizado.', 'Actualizar recursos', async () => {
-        try { await fetch(event.data.url, { cache: "reload" }); } catch {}
-        window.location.reload();
-      });
-    }
+        // Pequeño margen para que dispare controllerchange
+        setTimeout(() => location.reload(), 150);
+      }
+    });
+  };
+
+  // 1) Tu listener original de mensajes (lo mantenemos)
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    const data = event.data;
+    if (!data) return;
+    if (data.type === 'SW_UPDATED') promptReload('major');
+    if (data.type === 'SW_UPDATED_PARTIAL') promptReload('partial');
   });
-}
+
+  // 2) Detectar updates vía Registration API (waiting/updatefound)
+  navigator.serviceWorker.getRegistration().then((reg) => {
+    if (!reg) return;
+    regRef = reg;
+
+    // Ya hay un SW esperando al cargar
+    if (reg.waiting && navigator.serviceWorker.controller) {
+      promptReload('major');
+    }
+
+    // Cuando llega una nueva versión
+    reg.addEventListener('updatefound', () => {
+      const sw = reg.installing;
+      if (!sw) return;
+      sw.addEventListener('statechange', () => {
+        if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+          // Nueva versión lista (la vieja sigue controlando)
+          promptReload('major');
+        }
+      });
+    });
+  });
+
+  // 3) Si cambia el controller tras SKIP_WAITING, asegura un reload único
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloaded) return;
+    reloaded = true;
+    location.reload();
+  });
+
+  // 4) Re-chequear al volver la pestaña al foco (útil con Live Server)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    navigator.serviceWorker.getRegistration().then((reg) => {
+      if (!reg) return;
+      regRef = reg;
+      reg.update(); // busca versiones nuevas
+      if (reg.waiting && navigator.serviceWorker.controller) {
+        promptReload('major');
+      }
+    });
+  });
+})();
 
 // -------------------- Variables --------------------
 const form = document.getElementById("formulario");
@@ -1189,11 +1817,12 @@ bar.classList.add(status);
 bar.style.width = `${pct}%`;
 
 /* 4) Memoriza ya el nuevo estado (evita re-animaciones “dobles”) */
-_lastCatPct.set(cat, pct);
-_lastCatStatus.set(cat, status);
+const updateMemo = () => {
+  _lastCatPct.set(cat, pct);
+  _lastCatStatus.set(cat, status);
+};
 
 if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-  // Sin transición: memoriza ya
   updateMemo();
 } else {
   bar.addEventListener('transitionend', updateMemo, { once:true });
@@ -2319,6 +2948,16 @@ function makeRowSwipeable(row, gasto){
     row.addEventListener('touchcancel', () => { active=false; reset(false); }, { passive:true });
   }
 }
+
+// Brillo que sigue el ratón en los botones del overlay
+document.addEventListener('pointermove', (e) => {
+  const btn = e.target.closest('#updCard .upd-actions .upd-btn');
+  if (!btn) return;
+  const r = btn.getBoundingClientRect();
+  btn.style.setProperty('--mx', `${e.clientX - r.left}px`);
+  btn.style.setProperty('--my', `${e.clientY - r.top}px`);
+});
+
 // Eliminar SIN modal (usado por el swipe a la izquierda)
 function eliminarGastoRapido(id, monthKey){
   const ref = getMonthArrayRef(monthKey);

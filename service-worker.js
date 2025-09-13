@@ -1,5 +1,5 @@
-// service-worker.js
-const STATIC_CACHE = "gastos-static-v28";
+// service-worker.js — versión ajustada
+const STATIC_CACHE = "gastos-static-v31"; // ⬅️ sube versión al cambiar el SW
 const DYNAMIC_CACHE = "gastos-dynamic-v1";
 const MAX_DYNAMIC_ITEMS = 50;
 
@@ -30,31 +30,41 @@ async function trimCache(cacheName, maxItems) {
   }
 }
 
-// Instalación: cachea archivos uno a uno sin tumbar la instalación si alguno falla
+function notifyAll(msg) {
+  self.clients.matchAll({ type: "window" }).then(clientsArr => {
+    clientsArr.forEach(c => c.postMessage(msg));
+  });
+}
+
+// ================== INSTALL ==================
 self.addEventListener("install", (event) => {
-  self.skipWaiting();
+  // ✅ No skipWaiting aquí; dejamos al nuevo SW en "waiting"
   event.waitUntil((async () => {
     try {
       const cache = await caches.open(STATIC_CACHE);
       for (const url of STATIC_FILES) {
         try {
-          await cache.add(url); // fetch + put
-          // console.log('[SW] Cacheado:', url);
+          await cache.add(url);
         } catch (e) {
           console.warn("[SW] No se pudo cachear:", url, e);
         }
       }
-      // console.log('[SW] Instalación completa');
+
+      // Si hay clientes abiertos, comunica que hay versión lista (waiting)
+      // Esto hace que el cliente muestre el overlay.
+      const clientsArr = await self.clients.matchAll({ type: "window" });
+      if (clientsArr.length) {
+        notifyAll({ type: "SW_UPDATED" });
+      }
     } catch (e) {
       console.error("[SW] Error durante install:", e);
     }
   })());
 });
 
-// Activación
+// ================== ACTIVATE ==================
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
-
     // Limpia caches antiguos
     const keys = await caches.keys();
     await Promise.all(
@@ -63,30 +73,27 @@ self.addEventListener("activate", (event) => {
         .map(k => caches.delete(k))
     );
 
-    // Habilitar Navigation Preload (si está soportado)
+    // Navigation Preload
     if (self.registration.navigationPreload) {
       try { await self.registration.navigationPreload.enable(); } catch {}
     }
 
-    // Toma control de las páginas abiertas
+    // Control de clientes
     await self.clients.claim();
 
-    // Notificar actualización SOLO si ya había páginas controladas (update real)
-    const clientsArr = await self.clients.matchAll({ type: "window" });
-    if (clientsArr.length) {
-      for (const client of clientsArr) {
-        client.postMessage({ type: "SW_UPDATED" });
-      }
-    }
+    // ❌ Ya no notificamos aquí; el aviso se hace:
+    // - al terminar install (quedando en 'waiting'), o
+    // - cuando detectamos cambios en recursos (parciales), o
+    // - desde la página al ver registration.waiting / updatefound.
   })());
 });
 
-// --- FETCH robusto ---
+// ================== FETCH ==================
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
 
-    // Fallback de favicon: sirve icon-192.png cuando piden /favicon.ico
+  // Favicon -> icon-192
   try {
     const url = new URL(req.url);
     if (url.origin === self.location.origin && url.pathname === "/favicon.ico") {
@@ -94,7 +101,6 @@ self.addEventListener("fetch", (event) => {
         const cache = await caches.open(STATIC_CACHE);
         const cached = await cache.match("./icon-192.png");
         if (cached) return cached;
-        // Si no está cacheado aún, lo traemos y guardamos
         const resp = await fetch("./icon-192.png");
         await cache.put("./icon-192.png", resp.clone());
         return resp;
@@ -108,43 +114,57 @@ self.addEventListener("fetch", (event) => {
   const acceptsHTML = (req.headers.get("accept") || "").includes("text/html");
   const isNavigate = req.mode === "navigate" || acceptsHTML;
 
-  // 1) Navegación (HTML): cache-first del app shell con actualización en segundo plano
-if (isNavigate) {
-  event.respondWith((async () => {
-    const cache = await caches.open(STATIC_CACHE);
+  // 1) Navegación (HTML) — cache-first con actualización y AVISO si cambia index.html
+  if (isNavigate) {
+    event.respondWith((async () => {
+      const cache = await caches.open(STATIC_CACHE);
+      const cachedShell = await cache.match("./index.html");
 
-    // Intenta servir el app shell desde caché inmediatamente
-    const cachedShell = await cache.match("./index.html");
+      // Intento de red/preload (sin-cache para forzar frescura en dev)
+      const updatePromise = (async () => {
+        try {
+          const preloaded = await event.preloadResponse;
+          const network = preloaded || await fetch(req, { cache: "no-store" });
 
-    // En paralelo, intenta ir a red para actualizar el shell en caché
-    const updatePromise = (async () => {
-      try {
-        const preloaded = await event.preloadResponse;
-        const network = preloaded || await fetch(req);
-        // Guarda una copia "canónica" del shell
-        await cache.put("./index.html", network.clone());
-        return network;
-      } catch (e) {
-        return null;
+          // Si ya teníamos shell cacheado, compara contenido para avisar
+          if (cachedShell) {
+            try {
+              const [oldText, newText] = await Promise.all([
+                cachedShell.clone().text(),
+                network.clone().text()
+              ]);
+              if (oldText !== newText) {
+                // Cambió el app shell -> avisa (parcial es suficiente: recargar aplica cambios)
+                notifyAll({ type: "SW_UPDATED_PARTIAL", url: "index.html" });
+              }
+            } catch {}
+          }
+
+          // Guarda la nueva versión en caché
+          await cache.put("./index.html", network.clone());
+          return network;
+        } catch {
+          return null;
+        }
+      })();
+
+      if (cachedShell) {
+        // Sirve inmediatamente desde caché
+        // (la actualización y el posible aviso van en paralelo)
+        return cachedShell;
       }
-    })();
 
-    if (cachedShell) {
-      // Devolvemos de caché para que funcione offline inmediatamente
-      return cachedShell;
-    }
+      // Primera carga sin caché
+      const net = await updatePromise;
+      if (net) return net;
 
-    // Si no hay shell en caché (primera carga), prueba red y si falla, offline.html
-    const net = await updatePromise;
-    if (net) return net;
+      const offline = await caches.match("./offline.html");
+      return offline || new Response("Offline", { status: 503, statusText: "Servicio no disponible" });
+    })());
+    return;
+  }
 
-    const offline = await caches.match("./offline.html");
-    return offline || new Response("Offline", { status: 503, statusText: "Servicio no disponible" });
-  })());
-  return;
-}
-
-  // 2) Cross-origin (CDN, etc.): no cachear (evita respuestas opacas problemáticas)
+  // 2) Cross-origin sin cacheo (evita opacas problemáticas)
   if (!sameOrigin) {
     event.respondWith(fetch(req).catch(async () => {
       const cached = await caches.match(req);
@@ -158,7 +178,7 @@ if (isNavigate) {
     return;
   }
 
-  // 3) Estáticos same-origin: cache-first + actualización segura
+  // 3) Estáticos same-origin: cache-first + actualización + aviso parcial
   const isStatic = STATIC_FILES.some(path => req.url.includes(path.replace(/^\.\//, "")));
   if (isStatic) {
     event.respondWith((async () => {
@@ -166,31 +186,34 @@ if (isNavigate) {
       const cachedResp = await cache.match(req);
 
       try {
-        const network = await fetch(req);
+        const network = await fetch(req, { cache: "no-store" });
 
         if (!cachedResp) {
           await cache.put(req, network.clone());
           return network;
         }
 
-        // si no es opaca, compara headers para avisar de actualización parcial
-        if (network.type !== "opaque") {
-          const netLen = +network.headers.get("content-length") || 0;
-          const cachedLen = +((cachedResp.headers && cachedResp.headers.get("content-length")) || 0);
-          const netETag = network.headers.get("etag");
-          const cachedETag = cachedResp.headers ? cachedResp.headers.get("etag") : null;
+        // Compara headers básicos (ETag/Last-Modified/Content-Length)
+        const netLen = +network.headers.get("content-length") || 0;
+        const cachedLen = +((cachedResp.headers && cachedResp.headers.get("content-length")) || 0);
+        const netETag = network.headers.get("etag");
+        const cachedETag = cachedResp.headers ? cachedResp.headers.get("etag") : null;
+        const netLM = network.headers.get("last-modified");
+        const cachedLM = cachedResp.headers ? cachedResp.headers.get("last-modified") : null;
 
-          if (netLen !== cachedLen || (netETag && netETag !== cachedETag)) {
-            await cache.put(req, network.clone());
-            const clientsArr = await self.clients.matchAll({ type: "window" });
-            for (const client of clientsArr) client.postMessage({ type: "SW_UPDATED_PARTIAL", url: req.url });
-          }
+        let changed = false;
+        if (netETag && cachedETag && netETag !== cachedETag) changed = true;
+        else if (netLM && cachedLM && netLM !== cachedLM) changed = true;
+        else if (netLen && cachedLen && netLen !== cachedLen) changed = true;
+
+        if (changed) {
+          await cache.put(req, network.clone());
+          notifyAll({ type: "SW_UPDATED_PARTIAL", url: req.url });
         } else {
-          // caso raro: guarda una copia sin comparar
+          // Sin señal clara en headers -> reescribe igual por si acaso
           await cache.put(req, network.clone());
         }
 
-        // devuelve lo mejor que tengamos disponible
         return cachedResp || network;
       } catch {
         return cachedResp || new Response("", { status: 503, statusText: "Servicio no disponible" });
@@ -199,7 +222,7 @@ if (isNavigate) {
     return;
   }
 
-  // 4) Resto same-origin: dinámico (cache-first + refresh)
+  // 4) Dinámicos same-origin: cache-first + refresh
   event.respondWith((async () => {
     const cache = await caches.open(DYNAMIC_CACHE);
     const cachedResp = await cache.match(req);
@@ -220,7 +243,7 @@ if (isNavigate) {
   })());
 });
 
-// Comunicación desde la página
+// ================== MENSAJERÍA ==================
 self.addEventListener("message", (event) => {
   if (!event.data) return;
 
@@ -229,6 +252,7 @@ self.addEventListener("message", (event) => {
   }
 
   if (event.data.type === "SKIP_WAITING") {
+    // El cliente pulsa "Actualizar ahora"
     self.skipWaiting();
   }
 });
