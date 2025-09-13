@@ -1722,7 +1722,7 @@ const menu = document.getElementById("menu");
   selectSection('seccionRecurrentes');
   syncMenuActiveToVisible();
   closeMenu();
-  (document.querySelector('main') || document.body).scrollIntoView({ behavior:'smooth', block:'start' });
+  scrollTopIfDesktop();
   renderRecurrentManager();
   const h2 = section.querySelector('h2');
   if (h2){ h2.setAttribute('tabindex','-1'); setTimeout(()=>h2.focus(), 0); }
@@ -1753,7 +1753,7 @@ function selectSection(seccionId){
   });
 
   document.getElementById(seccionId)?.classList.remove('oculto');
-  (document.querySelector('main') || document.body).scrollIntoView({ behavior:'smooth', block:'start' });
+  scrollTopIfDesktop();
 
   // refrescar gráficos si aplica
   const mk = (filtrarMes?.value) || mesActual;
@@ -1817,6 +1817,15 @@ function applyBottomNavMode(){
   }
   reflowChartsVisible();
 }
+
+// 👇 Pégalo una vez (por ejemplo, junto a applyBottomNavMode)
+function scrollTopIfDesktop(){
+  if (!document.body.classList.contains('has-bottomnav')) {
+    (document.querySelector('main') || document.body)
+      .scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+}
+
 if (_mqBottomNav.addEventListener) {
   _mqBottomNav.addEventListener('change', applyBottomNavMode);
 } else if (_mqBottomNav.addListener) {
@@ -1985,7 +1994,7 @@ if (addFirstBtn) {
     if (estadoVacio) estadoVacio.hidden = true;
     (categoriaInput || tipoInput || importeInput || fechaInput)?.focus?.();
     markOnboardStep('primerGasto');
-    (document.querySelector('main') || document.body).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    scrollTopIfDesktop();
   });
 }
 
@@ -3485,7 +3494,7 @@ async function editarGastoPorId(id, monthKey) {
   maybeToastBudgetBackUnder(catKey, mk, g.importe, g.tipo);
 
   renderTabla();
-  (document.querySelector('main') || document.body).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  scrollTopIfDesktop();
   showToast('Datos cargados para editar', { type: 'info', duration: 2200 });
 }
 
@@ -3672,7 +3681,7 @@ function injectFAB(){
       // Desktop: ir al formulario original y enfocar
       document.querySelectorAll('main section').forEach(s => s.classList.add('oculto'));
       document.getElementById('seccionFormulario')?.classList.remove('oculto');
-      (document.querySelector('main') || document.body).scrollIntoView({ behavior:'smooth', block:'start' });
+      scrollTopIfDesktop();
       (categoriaInput || tipoInput || importeInput || fechaInput)?.focus?.();
     }
   });
@@ -3839,7 +3848,7 @@ filtrarMes?.addEventListener("input", () => {
   _lastCatStatus.clear();
   renderTabla();
   setTituloGraficoDiario();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  scrollTopIfDesktop();
   checkRecurrentsReminder();
 });
 
@@ -4153,8 +4162,7 @@ if (menu) {
       document.querySelectorAll("main section").forEach(s => s.classList.add("oculto"));
       document.getElementById(seccionId)?.classList.remove("oculto");
 
-      (document.querySelector('main') || document.body)
-        .scrollIntoView({ behavior: 'smooth', block: 'start' });
+      scrollTopIfDesktop();
 
       const mesSel = filtrarMes.value || mesActual;
 
