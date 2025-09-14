@@ -1015,9 +1015,7 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
   const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
 })();
 
-/* PATCH FINAL — Nav inferior estable + FAB/Toast alineados + z-index correcto
-   Pega esto DESPUÉS de tus estilos actuales.
-*/
+// PATCH FINAL — Nav inferior estable + FAB/Toast alineados + z-index correcto
 (() => {
   const css = `
   /* ====== Bottom Nav estable (móviles/tablets) ====== */
@@ -1083,6 +1081,47 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
     }
     body.toast-visible .toast-container{
       bottom: calc(1rem + 56px + 12px) !important; /* caso general con FAB visible */
+    }
+    body.has-bottomnav.toast-visible .toast-container{
+      bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + env(safe-area-inset-bottom,0px)) !important;
+    }
+  }`;
+  const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+})();
+
+(() => {
+  const css = `
+  /* === FIX unificador: bottom nav a la misma altura en todas las vistas === */
+  @media (max-width:1024px){
+    :root{ --bottomBarH:64px; }
+
+    /* 1) El contenido reserva hueco constante: barra + safe area */
+    body.has-bottomnav{
+      padding-bottom: calc(var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
+    }
+
+    /* 2) La barra SIEMPRE anclada al borde inferior.
+          El safe-area va como padding interno (NO como bottom ni en la height). */
+    #bottomNav, body.has-bottomnav #bottomNav, nav#bottomNav{
+      position: fixed !important;
+      left: 0; right: 0; bottom: 0 !important;
+      height: var(--bottomBarH) !important;
+      padding: 0 0 env(safe-area-inset-bottom,0px) 0 !important;
+      display: grid !important;
+      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
+      align-items: center !important;
+      z-index: 10010 !important;
+    }
+
+    /* 3) Botones con caja fija (evita variaciones de alto) */
+    #bottomNav > button{ height: var(--bottomBarH) !important; padding:0 !important; }
+
+    /* 4) Por si alguna vista añadía margen inferior */
+    main, .page{ margin-bottom: 0 !important; }
+
+    /* 5) FAB/Toasts alineados a la nueva referencia única */
+    .fab-add{
+      bottom: calc(16px + var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
     }
     body.has-bottomnav.toast-visible .toast-container{
       bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + env(safe-area-inset-bottom,0px)) !important;
