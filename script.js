@@ -937,6 +937,44 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
   document.head.appendChild(s);
 })();
 
+(() => {
+  const css = `
+  @media (max-width:1024px){
+    :root{
+      --safeB: env(safe-area-inset-bottom,0px);
+      --navBgLight: #43a047;   /* verde claro */
+      --navBgDark:  #2e7d32;   /* verde dark */
+    }
+
+    /* Fondo del nav + blur (ya no es transparente) */
+    body.has-bottomnav nav#bottomNav{
+      background: var(--navBgLight) !important;
+      backdrop-filter: saturate(180%) blur(14px);
+      -webkit-backdrop-filter: saturate(180%) blur(14px);
+      position: fixed !important;
+      left:0; right:0; bottom:0;
+      height: var(--bottomBarH,64px) !important;
+      padding-bottom: var(--safeB) !important; /* safe-area dentro */
+      z-index: 10010 !important;
+    }
+    body.dark.has-bottomnav nav#bottomNav{
+      background: var(--navBgDark) !important;
+    }
+
+    /* Pinta explícitamente la franja del safe-area con el mismo color */
+    body.has-bottomnav nav#bottomNav::after{
+      content:"";
+      position:absolute; left:0; right:0; bottom:0;
+      height: var(--safeB);
+      background: inherit;
+      pointer-events:none;
+    }
+  }
+  `;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
+})();
   // ---- DOM ----
   let overlay, card, fxCanvas, ctx, rafId, focusables, lastFocus;
 
@@ -971,8 +1009,6 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
       <div class="upd-foot">Gracias por usar la app 💚</div>
     `;
 
-    
-
     overlay.append(aurora, fxCanvas, card);
     document.body.appendChild(overlay);
 
@@ -984,10 +1020,7 @@ overlay.addEventListener('click', (e) => {
   }
 });
   }
-
-  
-
-  // ---- Partículas (sparkles suaves) ----
+ // ---- Partículas (sparkles suaves) ----
   const particles = [];
   function resizeCanvas(){
     const dpr = Math.max(1, window.devicePixelRatio || 1);
