@@ -1272,7 +1272,6 @@ body.dark #seccionHistorico .panel{
   document.head.appendChild(s);
 })();
 
-// ===== FIX: BottomNav altura consistente (64px) en todas las páginas =====
 // ===== FIX: BottomNav pegado al borde inferior (con safe-area) =====
 (() => {
   const css = `
@@ -1333,7 +1332,37 @@ body.dark #seccionHistorico .panel{
   document.head.appendChild(s);
 })();
 
+// —— Relleno de safe-area inferior para que no se vea nada bajo el nav ——
+(() => {
+  const css = `
+  @media (max-width:1024px){
+    /* Faja fija al fondo con el mismo color del bottomNav */
+    body.has-bottomnav::after{
+      content:"";
+      position: fixed;
+      left:0; right:0; bottom:0;
+      height: env(safe-area-inset-bottom, 0px);
+      /* fallback para iOS antiguos */
+      height: constant(safe-area-inset-bottom, 0px);
+      background: var(--bottomNavBg, #43a047);
+      z-index: 10005;              /* debajo del nav (que está a 10010) */
+      pointer-events:none;
+    }
+  }`;
+  const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
 
+  // Toma el color real del nav y lo guarda en --bottomNavBg
+  const setBgVar = () => {
+    const nav = document.getElementById('bottomNav');
+    if (!nav) return;
+    const bg = getComputedStyle(nav).backgroundColor || '#43a047';
+    document.documentElement.style.setProperty('--bottomNavBg', bg);
+  };
+  setBgVar();
+  // por si cambias tema/colores en runtime
+  window.addEventListener('load', setBgVar, { once:true });
+  window.addEventListener('resize', setBgVar);
+})();
 
 // -------------------- Toasts --------------------
 let __toastContainer;
