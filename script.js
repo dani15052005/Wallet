@@ -363,19 +363,27 @@ body.dark #recurManagerList .empty-box{
     body.dark .recur-item select{
       background:#111; border-color:#333; color:#eee;
     }
-    #menuToggle{
-  position:fixed !important;
-  right:12px !important;
-  left:auto !important;
-  top:12px !important;
-  z-index:10060; /* por encima del header (10004), menú (10050) y overlay (10040) */
-}
-    body.menu-open #menuToggle{ right:12px !important; }
+
+    /* 👇 El hamburguesa solo existe/está fijo en ESCRITORIO */
+    @media (min-width:1025px){
+      #menuToggle{
+        position:fixed !important;
+        right:12px !important;
+        left:auto !important;
+        top:12px !important;
+        z-index:10060;
+      }
+      body.menu-open #menuToggle{ right:12px !important; }
+    }
+    @media (max-width:1024px){
+      #menuToggle{ display:none !important; } /* 👈 oculto en móvil/tablet */
+    }
   `;
   const s = document.createElement('style');
   s.textContent = css;
   document.head.appendChild(s);
 })();
+
 
 // --- FAB + Quick Add (estilos) ---
 (() => {
@@ -764,18 +772,17 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
   `;
   const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
 
-/* Asegura que el body tiene .has-bottomnav cuando exista la barra.
-   Úsalo en carga y en cada cambio de ruta si tu app es SPA. */
+// Asegura que el body tiene .has-bottomnav cuando exista la barra.
 (function ensureBottomNavFlag(){
   const apply = () => {
     const has = !!document.getElementById('bottomNav');
     document.body.classList.toggle('has-bottomnav', has);
+    document.querySelector('main')?.classList.toggle('has-bottomnav', has); // 👈 también en <main>
   };
   apply();
   window.addEventListener('load', apply, {once:true});
   window.addEventListener('hashchange', apply);
   window.addEventListener('popstate', apply);
-  // Si usas router propio, llama a apply() tras cada navegación.
 })();
 
   // ---- DOM ----
@@ -1272,16 +1279,17 @@ body.dark #seccionHistorico .panel{
     :root{ --bottomBarH:64px; --safeB: env(safe-area-inset-bottom,0px); }
 
     /* Reserva de espacio para el contenido */
-    body.has-bottomnav{
-      padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important;
+    body.has-bottomnav,
+    main.has-bottomnav{
+      padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important; /* 👈 también en main */
     }
 
-    /* Barra inferior: altura fija + safe-area como padding interno */
+    /* Barra inferior: ... (lo demás igual) */
     nav#bottomNav{
       position: fixed !important;
       left:0 !important; right:0 !important; bottom:0 !important;
-      height: var(--bottomBarH) !important;          /* <- SOLO 64px */
-      padding: 0 0 var(--safeB) 0 !important;        /* <- safe-area dentro, no suma altura */
+      height: var(--bottomBarH) !important;
+      padding: 0 0 var(--safeB) 0 !important;
       margin: 0 !important;
       display: grid !important;
       grid-template-columns: repeat(5, minmax(0,1fr)) !important;
@@ -1290,7 +1298,6 @@ body.dark #seccionHistorico .panel{
       z-index: 10010 !important;
     }
 
-    /* Botones: mismo alto que la barra */
     nav#bottomNav > button{
       height: var(--bottomBarH) !important;
       padding: 0 !important;
@@ -1303,7 +1310,6 @@ body.dark #seccionHistorico .panel{
       contain: layout paint !important;
     }
 
-    /* FAB/Toasts referenciando exactamente la misma altura */
     .fab-add{
       bottom: calc(16px + var(--bottomBarH) + var(--safeB)) !important;
     }
@@ -1315,6 +1321,7 @@ body.dark #seccionHistorico .panel{
   s.textContent = css;
   document.head.appendChild(s);
 })();
+
 
 // -------------------- Toasts --------------------
 let __toastContainer;
@@ -1794,11 +1801,14 @@ function destroyBottomNav(){
 
 const _mqBottomNav = window.matchMedia('(max-width: 1024px)');
 function applyBottomNavMode(){
+  const mainEl = document.querySelector('main');
   if (_mqBottomNav.matches){
     document.body.classList.add('has-bottomnav');
+    mainEl?.classList.add('has-bottomnav');        // 👈 añade aquí
     buildBottomNav();
   } else {
     document.body.classList.remove('has-bottomnav');
+    mainEl?.classList.remove('has-bottomnav');     // 👈 y aquí
     destroyBottomNav();
   }
   reflowChartsVisible();
