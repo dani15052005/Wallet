@@ -1114,23 +1114,29 @@ body.dark #seccionHistorico .panel{
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }
 
-  function updateBottomNavFill(){
+function updateBottomNavFill(){
   const nav = document.getElementById('bottomNav');
   if (!nav) return;
 
-  // Color real de fondo del nav (light)
-  const navBg = getComputedStyle(nav).backgroundColor;
-  document.documentElement.style.setProperty('--bottomNavBg', navBg);
+  // Color claro (light): el del propio nav o, si fuese transparente, el de un botón
+  let light = getComputedStyle(nav).backgroundColor;
+  if (!light || light === 'rgba(0, 0, 0, 0)') {
+    const sample = nav.querySelector('[aria-current="page"]') || nav.querySelector('button');
+    const b = sample && getComputedStyle(sample).backgroundColor;
+    light = (b && b !== 'rgba(0, 0, 0, 0)') ? b : '#4caf50';
+  }
+  document.documentElement.style.setProperty('--bottomNavBg', light);
 
-  // En dark, usa el color de un botón del nav como relleno (gris)
-  const btn = nav.querySelector('button');
-  if (btn){
-    const btnBg = getComputedStyle(btn).backgroundColor;
-    // Si el botón no tiene fondo explícito, mantenemos el fallback gris
-    if (btnBg && btnBg !== 'rgba(0, 0, 0, 0)')
-      document.documentElement.style.setProperty('--bottomNavFillDark', btnBg);
+  // Color de relleno en dark: toma el fondo de un botón (gris) o fallback
+  if (document.body.classList.contains('dark')) {
+    let dark = '#1b1b1b';
+    const btn = nav.querySelector('button');
+    const bb = btn && getComputedStyle(btn).backgroundColor;
+    if (bb && bb !== 'rgba(0, 0, 0, 0)') dark = bb;
+    document.documentElement.style.setProperty('--bottomNavFillDark', dark);
   }
 }
+
 
   // ---- API pública ----
   function openUpdateOverlay(opts = {}){
@@ -1322,20 +1328,6 @@ body.dark #seccionHistorico .panel{
       z-index: 10010 !important;
     }
 
-    /* Tira que “rellena” por debajo del nav (incluye safe area + rebote) */
-    nav#bottomNav::after{
-      content:"";
-      position: fixed;
-      left:0; right:0; bottom:0;
-      height: calc(var(--safeB) + var(--overscrollExtra));
-      background: var(--bottomNavBg);
-      pointer-events:none;
-      z-index: 10005; /* debajo del nav, por encima del fondo */
-    }
-    body.dark nav#bottomNav::after{
-      background: var(--bottomNavFillDark); /* gris oscuro en dark */
-    }
-
     /* Botones del nav */
     nav#bottomNav > button{
       height: var(--bottomBarH) !important;
@@ -1381,6 +1373,71 @@ body.dark #seccionHistorico .panel{
     }
   }`;
   const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+
+  (() => {
+  const css = `
+  :root{
+    --bottomBarH:64px;
+    --safeB: env(safe-area-inset-bottom, 0px);
+    --overscrollExtra: 72px;          /* extra para el rebote de iOS */
+    --bottomNavBg:#4caf50;            /* se sincroniza por JS */
+    --bottomNavFillDark:#1b1b1b;      /* gris en dark */
+  }
+
+  @media (max-width:1024px){
+    /* espacio para que el contenido nunca quede bajo el nav */
+    body.has-bottomnav{
+      padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important;
+    }
+
+    /* nav fijo */
+    nav#bottomNav{
+      position: fixed !important;
+      left:0 !important; right:0 !important; bottom:0 !important;
+      height: var(--bottomBarH) !important;
+      padding: 0 0 var(--safeB) 0 !important;
+      background: var(--bottomNavBg) !important;
+      display:grid !important; grid-template-columns: repeat(5,1fr) !important;
+      align-items:center !important;
+      z-index: 10010 !important;
+    }
+
+    /* ❌ desactiva el antiguo “relleno” que tapaba botones */
+    nav#bottomNav::after{ display:none !important; }
+
+    /* ✅ nuevo relleno del documento: nunca tapa al nav */
+    body.has-bottomnav::after{
+      content:"";
+      position: fixed; left:0; right:0; bottom:0;
+      height: calc(var(--safeB) + var(--overscrollExtra));
+      background: var(--bottomNavBg);
+      pointer-events:none;
+      z-index: 10000; /* por debajo del nav (10010) */
+    }
+    body.dark.has-bottomnav::after{
+      background: var(--bottomNavFillDark);
+    }
+
+    /* botones del nav */
+    nav#bottomNav > button{
+      height: var(--bottomBarH) !important;
+      display:flex !important; flex-direction:column !important;
+      align-items:center !important; justify-content:center !important;
+      gap:.25rem !important;
+    }
+
+    /* FAB y toasts respiran sobre el nav */
+    .fab-add{
+      bottom: calc(16px + var(--bottomBarH) + var(--safeB)) !important;
+    }
+    body.has-bottomnav.toast-visible .toast-container{
+      bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + var(--safeB)) !important;
+    }
+  }`;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
+})();
 
   // Toma el color real del nav y lo guarda en --bottomNavBg
   const setBgVar = () => {
