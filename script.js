@@ -1677,7 +1677,7 @@ body.dark #seccionHistorico .panel{
       position: fixed !important;
       left: 0; right: 0; bottom: 0 !important;
       box-sizing: border-box !important;
-      height: calc(var(--bottomBarH) + var(--safeB)) !important;
+      height: var(--bottomBarH) !important;
       padding: 0 0 var(--safeB) 0 !important;   /* safe-area dentro, sin variar la altura de 64px */
       display: grid !important;
       grid-template-columns: repeat(5, minmax(0,1fr)) !important;
