@@ -438,24 +438,6 @@ body.dark #recurManagerList .empty-box{
   document.head.appendChild(s);
 })();
 
-(() => {
-  const css = `
-  :root{ --bottomBarH: 64px; }
-
-  /* Barra inferior oculta por defecto */
-  #bottomNav{ display:none; }
-  @media (max-width: 1024px){
-  body.has-bottomnav.toast-visible .toast-container{
-    bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + env(safe-area-inset-bottom, 0px));
-  }
-}
-  `;
-  const s = document.createElement('style');
-  s.textContent = css;
-  document.head.appendChild(s);
-
-  // ======= Update Overlay (Aurora + Partículas) =======
-(() => {
   // ---- Estilos (CSS-in-JS) ----
   const css = `
   :root{
@@ -794,170 +776,6 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
   window.addEventListener('hashchange', apply);
   window.addEventListener('popstate', apply);
   // Si usas router propio, llama a apply() tras cada navegación.
-})();
-
-(() => {
-  const css = `
-  /* ====== Fix global ====== */
-  @media (max-width:1024px){
-    :root{ --bottomBarH:64px; --safeB: env(safe-area-inset-bottom,0px); }
-
-    /* 1) Oculta el menú hamburguesa en móviles/tablets */
-    #menuToggle,
-    #menu,
-    #menuOverlay{ display:none !important; }
-
-    /* 2) Reserva SIEMPRE el mismo hueco para la barra */
-    body.has-bottomnav{
-      padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important;
-    }
-
-    /* 4) Botones: bloquea el alto y evita que las etiquetas hagan wrap */
-    body.has-bottomnav nav#bottomNav > button{
-      height: var(--bottomBarH) !important;
-      padding: 0 !important;
-      display:flex !important;
-      flex-direction:column !important;
-      align-items:center !important;
-      justify-content:center !important;
-      gap:.25rem !important;
-      min-width:0 !important;
-      contain: layout paint !important;
-    }
-    body.has-bottomnav nav#bottomNav .label{
-      white-space: nowrap !important;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
-      line-height: 1 !important;
-      font-weight: 600 !important;
-      transform: none !important;
-    }
-
-    /* 5) FAB y toasts alineados a la barra */
-    .fab-add{ bottom: calc(16px + var(--bottomBarH) + var(--safeB)) !important; }
-    body.has-bottomnav.toast-visible .toast-container{
-      bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + var(--safeB)) !important;
-    }
-  }
-
-  /* 6) Corrige el typo por si el bloque viejo sigue cargando */
-  nav#bottomNav{ height: var(--bottomBarH) !important; }
-  `;
-  const s = document.createElement('style');
-  s.textContent = css;
-  document.head.appendChild(s);
-})();
-
-(() => {
-  const css = `
-  @media (max-width:1024px){
-    :root{
-      --safeB: env(safe-area-inset-bottom,0px);
-      --navBgLight: #43a047;   /* verde claro */
-      --navBgDark:  #2e7d32;   /* verde dark */
-    }
-
-    /* Fondo del nav + blur (ya no es transparente) */
-    body.has-bottomnav nav#bottomNav{
-      background: var(--navBgLight) !important;
-      backdrop-filter: saturate(180%) blur(14px);
-      -webkit-backdrop-filter: saturate(180%) blur(14px);
-      position: fixed !important;
-      left:0; right:0; bottom:0;
-      height: var(--bottomBarH,64px) !important;
-      padding-bottom: var(--safeB) !important; /* safe-area dentro */
-      z-index: 10010 !important;
-    }
-    body.dark.has-bottomnav nav#bottomNav{
-      background: var(--navBgDark) !important;
-    }
-
-    /* Pinta explícitamente la franja del safe-area con el mismo color */
-    body.has-bottomnav nav#bottomNav::after{
-      content:"";
-      position:absolute; left:0; right:0; bottom:0;
-      height: var(--safeB);
-      background: inherit;
-      pointer-events:none;
-    }
-  }
-  `;
-  const s = document.createElement('style');
-  s.textContent = css;
-  document.head.appendChild(s);
-})();
-
-(() => {
-  const css = `
-  /* ===== BottomNav consistente, sin fondo blanco ===== */
-  @media (max-width:1024px){
-    :root{
-      --bottomBarH: 64px;
-      --safeB: env(safe-area-inset-bottom, 0px);
-    }
-
-    /* Reserva para el contenido: barra + safe area */
-    body.has-bottomnav{
-      padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important;
-    }
-
-    /* Barra fija: altura constante y color sólido */
-    nav#bottomNav{
-      position: fixed !important;
-      left: 0; right: 0; bottom: 0 !important;
-      display: grid !important;
-      grid-template-columns: repeat(5, 1fr) !important;
-      align-items: center !important;
-      height: var(--bottomBarH) !important;     /* 64 px exactos para los botones */
-      box-sizing: content-box !important;        /* el padding SUMA, no resta */
-      padding: 0 0 var(--safeB) 0 !important;    /* pinta la zona segura */
-      background: #43a047 !important;
-      border-top: 1px solid rgba(0,0,0,.08) !important;
-      transform: none !important; translate: none !important;
-      z-index: 10020 !important;
-    }
-    body.dark nav#bottomNav{
-      background:#2e7d32 !important;
-      border-top-color: rgba(255,255,255,.12) !important;
-    }
-
-    /* Botones del nav: mismo alto que la barra */
-    nav#bottomNav > button{
-      height: var(--bottomBarH) !important;
-      padding: 0 !important;
-      display: flex !important;
-      flex-direction: column !important;
-      justify-content: center !important;
-      align-items: center !important;
-      gap: .25rem !important;
-      min-width: 0 !important;
-      background: transparent !important;
-      box-shadow: none !important;
-    }
-    nav#bottomNav .label{
-      line-height:1 !important;
-      font-weight:600 !important;
-      white-space:nowrap !important;
-      overflow:hidden !important;
-      text-overflow:ellipsis !important;
-      transform:none !important;
-    }
-
-    /* FAB/Toasts referenciados a la misma altura */
-    .fab-add{
-      bottom: calc(16px + var(--bottomBarH) + var(--safeB)) !important;
-    }
-    body.has-bottomnav.toast-visible .toast-container{
-      bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + var(--safeB)) !important;
-    }
-  }
-
-  /* Por si quedó el bloque roto con "height: height:" o la llave suelta */
-  nav#bottomNav{ height: var(--bottomBarH) !important; }
-  `;
-  const s = document.createElement('style');
-  s.textContent = css;
-  document.head.appendChild(s);
 })();
 
   // ---- DOM ----
@@ -1375,8 +1193,6 @@ body.dark #seccionHistorico .panel{
   // Expone funciones
   window.openUpdateOverlay = openUpdateOverlay;
   window.closeUpdateOverlay = closeUpdateOverlay;
-})();
-})();
 
 (() => {
   const css = `
@@ -1447,71 +1263,6 @@ body.dark #seccionHistorico .panel{
   const s = document.createElement('style');
   s.textContent = css;
   document.head.appendChild(s);
-})();
-
-(() => {
-  const css = `
-  @media (max-width:1024px){
-    :root{ --bottomBarH:64px; --safeB: env(safe-area-inset-bottom,0px); }
-
-    /* Reserva hueco SIEMPRE del mismo tamaño */
-    body.has-bottomnav{
-      padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important;
-    }
-
-    /* Barra fija con altura constante: 64px + safe-area */
-    body.has-bottomnav nav#bottomNav{
-      position: fixed !important;
-      left: 0; right: 0; bottom: 0 !important;
-      box-sizing: border-box !important;
-      height: var(--bottomBarH) !important;
-      padding: 0 0 var(--safeB) 0 !important;   /* safe-area dentro, sin variar la altura de 64px */
-      display: grid !important;
-      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
-      align-items: center !important;
-      z-index: 10001 !important;
-      border-top: 1px solid rgba(255,255,255,.12);
-      backdrop-filter: saturate(180%) blur(14px);
-      -webkit-backdrop-filter: saturate(180%) blur(14px);
-    }
-
-    /* Cada botón mide SIEMPRE 64px de alto: no hay reflow por fuentes */
-    body.has-bottomnav nav#bottomNav > button{
-      height: var(--bottomBarH) !important;
-      padding: 0 !important;
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: center !important;
-      justify-content: center !important;
-      gap: .25rem !important;
-      min-width: 0 !important;
-      contain: layout paint !important;
-    }
-
-    /* Etiquetas: sin cambios de peso/escala que alteren la caja */
-    body.has-bottomnav nav#bottomNav .label{
-      line-height: 1 !important;
-      font-weight: 600 !important;
-      white-space: nowrap !important;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
-      transform: none !important;
-    }
-    body.has-bottomnav nav#bottomNav button[aria-current="page"] .label{
-      font-weight: 600 !important;   /* mismo peso en activo */
-    }
-
-    /* FAB alineado a la barra fija */
-    .fab-add{
-      bottom: calc(16px + var(--bottomBarH) + var(--safeB)) !important;
-    }
-
-    /* Toasts: referencia la misma altura constante */
-    body.has-bottomnav.toast-visible .toast-container{
-      bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + var(--safeB)) !important;
-    }
-  }`;
-  const s=document.createElement('style'); s.textContent=css; document.head.appendChild(s);
 })();
 
 // ===== FIX: BottomNav altura consistente (64px) en todas las páginas =====
