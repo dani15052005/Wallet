@@ -953,7 +953,7 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
 
     /* 1) El contenido SIEMPRE deja hueco para la barra */
     .has-bottomnav main{ 
-      padding-bottom: calc(var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important; 
+      padding-bottom: 0 !important; 
     }
     /* si no usas <main>, deja también el padding en body por si acaso */
     body.has-bottomnav{ 
@@ -969,8 +969,10 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
       padding: 0 0 env(safe-area-inset-bottom,0px) 0 !important; /* ← safe-area dentro de la barra */
       display: grid !important;
       grid-template-columns: repeat(5, minmax(0,1fr)) !important;
+      width:100% !important;
+      backface-visibility:hidden;
       align-items: center !important;
-      z-index: 10004 !important;
+      z-index: 10001 !important;
       backdrop-filter: saturate(180%) blur(14px);
       -webkit-backdrop-filter: saturate(180%) blur(14px);
     }
@@ -1011,6 +1013,96 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
     }
   }`;
   const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+})();
+
+/* PATCH FINAL — Nav inferior estable + FAB/Toast alineados + z-index correcto
+   Pega esto DESPUÉS de tus estilos actuales.
+*/
+(() => {
+  const css = `
+  /* ====== Bottom Nav estable (móviles/tablets) ====== */
+  @media (max-width:1024px){
+    :root{ --bottomBarH:64px; }
+
+    /* El contenido SIEMPRE deja hueco para la barra + safe-area */
+    body.has-bottomnav{
+      padding-bottom: calc(var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
+    }
+
+    /* Barra pegada al borde, altura fija, safe-area dentro (padding) */
+    #bottomNav{
+      position: fixed !important;
+      left: 0; right: 0; bottom: 0 !important;
+      height: var(--bottomBarH) !important;
+      padding: 0 0 env(safe-area-inset-bottom,0px) 0 !important;
+      display: grid !important;
+      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
+      align-items: center !important;
+      backdrop-filter: saturate(180%) blur(14px);
+      -webkit-backdrop-filter: saturate(180%) blur(14px);
+      border-top: 1px solid #e5e7eb;
+      z-index: 10002 !important; /* < hoja Quick Add (10003) y < toasts (10020) */
+      contain: layout paint !important; /* evita reflow global */
+    }
+    body.dark #bottomNav{ border-top-color:#333; }
+
+    /* Botones con caja fija (sin cambios de ancho/alto al activar) */
+    #bottomNav button{
+      height: var(--bottomBarH) !important;
+      padding: 0 !important;
+      display:flex !important; flex-direction:column !important;
+      align-items:center !important; justify-content:center !important;
+      gap:.25rem !important; min-width:0 !important;
+      contain: layout paint !important;
+    }
+    #bottomNav .icon{ line-height:1 !important; }
+    #bottomNav .label{
+      display:block; max-width:100%;
+      white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important;
+      line-height:1 !important;
+      font-weight:600 !important;              /* mismo peso siempre → sin “brinco” */
+      font-synthesis-weight: none !important;  /* evita negrita sintética */
+    }
+    #bottomNav button[aria-current="page"] .label{
+      font-weight:600 !important;              /* sin extra-bold ni scale */
+      transform:none !important;
+    }
+
+    /* Ocultar hamburguesa cuando hay bottom nav */
+    body.has-bottomnav #menuToggle{ display:none !important; }
+
+    /* FAB alineado por encima de la barra (incluyendo safe-area) */
+    .fab-add{
+      bottom: calc(16px + var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
+    }
+
+    /* Toasters: sin doble safe-area y sin solapar FAB */
+    .toast-container{ right:1rem; }
+    body.has-bottomnav .toast-container{
+      bottom: calc(1rem + var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
+    }
+    body.toast-visible .toast-container{
+      bottom: calc(1rem + 56px + 12px) !important; /* caso general con FAB visible */
+    }
+    body.has-bottomnav.toast-visible .toast-container{
+      bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + env(safe-area-inset-bottom,0px)) !important;
+    }
+  }`;
+  const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+})();
+
+/* Asegura que el body tiene .has-bottomnav cuando exista la barra.
+   Úsalo en carga y en cada cambio de ruta si tu app es SPA. */
+(function ensureBottomNavFlag(){
+  const apply = () => {
+    const has = !!document.getElementById('bottomNav');
+    document.body.classList.toggle('has-bottomnav', has);
+  };
+  apply();
+  window.addEventListener('load', apply, {once:true});
+  window.addEventListener('hashchange', apply);
+  window.addEventListener('popstate', apply);
+  // Si usas router propio, llama a apply() tras cada navegación.
 })();
 
   // ---- DOM ----
@@ -1505,6 +1597,71 @@ body.dark #seccionHistorico .panel{
   const s = document.createElement('style');
   s.textContent = css;
   document.head.appendChild(s);
+})();
+
+(() => {
+  const css = `
+  @media (max-width:1024px){
+    :root{ --bottomBarH:64px; --safeB: env(safe-area-inset-bottom,0px); }
+
+    /* Reserva hueco SIEMPRE del mismo tamaño */
+    body.has-bottomnav{
+      padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important;
+    }
+
+    /* Barra fija con altura constante: 64px + safe-area */
+    body.has-bottomnav nav#bottomNav{
+      position: fixed !important;
+      left: 0; right: 0; bottom: 0 !important;
+      box-sizing: border-box !important;
+      height: calc(var(--bottomBarH) + var(--safeB)) !important;
+      padding: 0 0 var(--safeB) 0 !important;   /* safe-area dentro, sin variar la altura de 64px */
+      display: grid !important;
+      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
+      align-items: center !important;
+      z-index: 10001 !important;
+      border-top: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: saturate(180%) blur(14px);
+      -webkit-backdrop-filter: saturate(180%) blur(14px);
+    }
+
+    /* Cada botón mide SIEMPRE 64px de alto: no hay reflow por fuentes */
+    body.has-bottomnav nav#bottomNav > button{
+      height: var(--bottomBarH) !important;
+      padding: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: .25rem !important;
+      min-width: 0 !important;
+      contain: layout paint !important;
+    }
+
+    /* Etiquetas: sin cambios de peso/escala que alteren la caja */
+    body.has-bottomnav nav#bottomNav .label{
+      line-height: 1 !important;
+      font-weight: 600 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      transform: none !important;
+    }
+    body.has-bottomnav nav#bottomNav button[aria-current="page"] .label{
+      font-weight: 600 !important;   /* mismo peso en activo */
+    }
+
+    /* FAB alineado a la barra fija */
+    .fab-add{
+      bottom: calc(16px + var(--bottomBarH) + var(--safeB)) !important;
+    }
+
+    /* Toasts: referencia la misma altura constante */
+    body.has-bottomnav.toast-visible .toast-container{
+      bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + var(--safeB)) !important;
+    }
+  }`;
+  const s=document.createElement('style'); s.textContent=css; document.head.appendChild(s);
 })();
 
 // -------------------- Toasts --------------------
