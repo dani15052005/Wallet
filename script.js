@@ -1114,6 +1114,24 @@ body.dark #seccionHistorico .panel{
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }
 
+  function updateBottomNavFill(){
+  const nav = document.getElementById('bottomNav');
+  if (!nav) return;
+
+  // Color real de fondo del nav (light)
+  const navBg = getComputedStyle(nav).backgroundColor;
+  document.documentElement.style.setProperty('--bottomNavBg', navBg);
+
+  // En dark, usa el color de un botón del nav como relleno (gris)
+  const btn = nav.querySelector('button');
+  if (btn){
+    const btnBg = getComputedStyle(btn).backgroundColor;
+    // Si el botón no tiene fondo explícito, mantenemos el fallback gris
+    if (btnBg && btnBg !== 'rgba(0, 0, 0, 0)')
+      document.documentElement.style.setProperty('--bottomNavFillDark', btnBg);
+  }
+}
+
   // ---- API pública ----
   function openUpdateOverlay(opts = {}){
     buildDOM();
@@ -1273,52 +1291,52 @@ body.dark #seccionHistorico .panel{
 })();
 
 // ===== FIX: BottomNav pegado al borde inferior (con safe-area) =====
+// ===== FIX: BottomNav + relleno inferior que iguala color del nav =====
 (() => {
   const css = `
-  @media (max-width:1024px){
-    :root{ --bottomBarH:64px; --safeB: env(safe-area-inset-bottom,0px); }
+  :root{
+    --bottomBarH:64px;
+    --safeB: env(safe-area-inset-bottom,0px);
+    --overscrollExtra: 64px;               /* cubre el rebote de iOS */
+    --bottomNavBg:#4caf50;                 /* JS la sincroniza al color real del nav */
+    --bottomNavFillDark:#1b1b1b;           /* gris oscuro en modo oscuro */
+  }
 
-    /* Reserva de espacio para el contenido */
-    body.has-bottomnav,
-    main.has-bottomnav{
+  @media (max-width:1024px){
+    /* Reserva para que el contenido nunca quede por debajo del nav */
+    body.has-bottomnav{
       padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important;
     }
 
-    /* iOS: el nav incluye la safe-area en su ALTURA real */
-nav#bottomNav{
-  position: fixed !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
+    /* Barra inferior fija */
+    nav#bottomNav{
+      position: fixed !important;
+      left:0 !important; right:0 !important; bottom:0 !important;
+      height: var(--bottomBarH) !important;
+      padding: 0 0 var(--safeB) 0 !important;
+      margin: 0 !important;
+      display: grid !important;
+      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
+      align-items: center !important;
+      background: var(--bottomNavBg) !important; /* mismo color en nav y relleno */
+      z-index: 10010 !important;
+    }
 
-  /* altura total = barra + safe-area  */
-  height: calc(var(--bottomBarH) + var(--safeB)) !important;
-  padding: 0 0 var(--safeB) 0 !important;     /* botones por encima del borde */
-  box-sizing: border-box !important;
+    /* Tira que “rellena” por debajo del nav (incluye safe area + rebote) */
+    nav#bottomNav::after{
+      content:"";
+      position: fixed;
+      left:0; right:0; bottom:0;
+      height: calc(var(--safeB) + var(--overscrollExtra));
+      background: var(--bottomNavBg);
+      pointer-events:none;
+      z-index: 10005; /* debajo del nav, por encima del fondo */
+    }
+    body.dark nav#bottomNav::after{
+      background: var(--bottomNavFillDark); /* gris oscuro en dark */
+    }
 
-  /* mantén tu color aquí (o se hereda del que tengas) */
-  background: #43a047 !important;
-
-  display: grid !important;
-  grid-template-columns: repeat(5, minmax(0,1fr)) !important;
-  align-items: center !important;
-  z-index: 10020 !important;
-  transform: none !important;
-}
-
-/* Fallback extra: pinta explícitamente la franja de la safe-area
-   por si algún WebKit no pinta el padding con background */
-nav#bottomNav::after{
-  content:"";
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
-  height: var(--safeB);
-  background: inherit;
-  z-index: 10019;           /* justo debajo del nav */
-  pointer-events: none;
-}
-
-    /* Botones: mismo alto que la parte útil (sin safe-area) */
+    /* Botones del nav */
     nav#bottomNav > button{
       height: var(--bottomBarH) !important;
       padding: 0 !important;
@@ -1328,9 +1346,10 @@ nav#bottomNav::after{
       justify-content:center !important;
       gap:.25rem !important;
       min-width:0 !important;
+      contain: layout paint !important;
     }
 
-    /* FAB/Toasts referenciando la misma altura total */
+    /* FAB/Toasts ajustados a la misma altura */
     .fab-add{
       bottom: calc(16px + var(--bottomBarH) + var(--safeB)) !important;
     }
@@ -1342,6 +1361,7 @@ nav#bottomNav::after{
   s.textContent = css;
   document.head.appendChild(s);
 })();
+
 
 // —— Relleno de safe-area inferior para que no se vea nada bajo el nav ——
 (() => {
@@ -1838,6 +1858,7 @@ function buildBottomNav(){
     </button>
   `;
   document.body.appendChild(nav);
+  updateBottomNavFill();
 
   // delegación de clicks
   nav.addEventListener('click', (e) => {
@@ -1864,6 +1885,7 @@ function applyBottomNavMode(){
     destroyBottomNav();
   }
   reflowChartsVisible();
+  updateBottomNavFill();
 }
 
 // 👇 Pégalo una vez (por ejemplo, junto a applyBottomNavMode)
@@ -4095,6 +4117,7 @@ toggleDarkBtn?.addEventListener("click", () => {
     chartPorcentaje.data.datasets[0].hoverBorderColor = borde;
 
     chartPorcentaje.update();
+    updateBottomNavFill();
   }
 
   // Barras diario
