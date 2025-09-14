@@ -449,52 +449,6 @@ body.dark #recurManagerList .empty-box{
     bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + env(safe-area-inset-bottom, 0px));
   }
 }
-
-  /* -------- Solo móviles/tablets -------- */
-  @media (max-width: 1024px){
-    /* Mostrar barra y reservar espacio inferior del contenido */
-    body.has-bottomnav{ padding-bottom: calc(var(--bottomBarH) + env(safe-area-inset-bottom, 0px)); }
-
-    /* Ocultar menú hamburguesa cuando hay bottom nav */
-    body.has-bottomnav #menuToggle{ display:none !important; }
-
-    /* Barra */
-    #bottomNav{
-      position:fixed; left:0; right:0; bottom:0;
-      height: var(--bottomBarH);
-      display:grid; grid-template-columns: repeat(5,1fr); align-items:stretch;
-      backdrop-filter: saturate(180%) blur(14px);
-      -webkit-backdrop-filter: saturate(180%) blur(14px);
-      background: rgba(255,255,255,.85);
-      border-top: 1px solid #e5e7eb;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-      z-index:10004;
-    }
-    body.dark #bottomNav{
-      background: rgba(17,17,17,.75);
-      border-top-color:#333;
-    }
-
-    #bottomNav button{
-      appearance:none; border:0; background:transparent; margin:0; padding:.35rem 0 .2rem;
-      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.25rem;
-      font: inherit; color: inherit; cursor:pointer;
-    }
-    #bottomNav .icon{ font-size:1.15rem; line-height:1; }
-    #bottomNav .label{ font-size:.75rem; opacity:.85; }
-
-    #bottomNav button[aria-current="page"] .label{ font-weight:700; opacity:1; }
-    #bottomNav button[aria-current="page"]{ color:#2e7d32; }
-    body.dark #bottomNav button[aria-current="page"]{ color:#81c995; }
-
-    /* Subir el FAB para que no tape la barra */
-    .fab-add{ bottom: calc(16px + var(--bottomBarH) + env(safe-area-inset-bottom, 0px)); }
-
-    /* Subir los toasts cuando hay barra inferior */
-    body.has-bottomnav .toast-container{
-      bottom: calc(1rem + var(--bottomBarH) + 12px + env(safe-area-inset-bottom, 0px));
-    }
-  }
   `;
   const s = document.createElement('style');
   s.textContent = css;
@@ -830,328 +784,71 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
 
   (() => {
   const css = `
+  /* ===== BottomNav — versión única, consistente ===== */
   @media (max-width:1024px){
-    /* Cada columna no puede crecer por el contenido */
-    #bottomNav{ grid-template-columns:repeat(5, minmax(0,1fr)) !important; }
-    #bottomNav button{ min-width:0 !important; } /* permite encoger dentro del grid */
+    :root{ --bottomBarH:64px; --safeB: env(safe-area-inset-bottom,0px); }
 
-    /* Evita saltos de línea y reflow por font-weight */
-    #bottomNav .label{
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      line-height:1;
-      font-weight:600;            /* peso fijo para todos */
-    }
-    /* Resalta sin cambiar el tamaño de caja */
-    #bottomNav button[aria-current="page"] .label{
-      font-weight:600;            /* no varía el ancho */
-      transform:translateZ(0) scale(1.05); /* efecto visual */
-      opacity:1;
-    }
-  }`;
-  const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
-})();
-
-(() => {
-  const css = `
-  @media (max-width:1024px){
-    /* Altura fija + columnas sin crecimiento por contenido */
-    #bottomNav{
-      height: var(--bottomBarH);
-      padding-bottom: env(safe-area-inset-bottom,0px);
-      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
-      font-synthesis-weight: none; /* evita negrita sintética */
-    }
-    #bottomNav button{
-      min-width: 0 !important;
-      contain: layout paint;       /* cambios internos no recalculan el grid */
-    }
-    /* Etiquetas: mismo peso SIEMPRE (evita reflow) */
-    #bottomNav .label{
-      display:block;
-      max-width:100%;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      line-height:1;
-      font-weight:600;             /* base fija */
-    }
-    /* Activo: NO cambies el peso ni escales */
-    #bottomNav button[aria-current="page"] .label{
-      font-weight:600 !important;  /* ← clave del fix */
-      transform:none !important;   /* sin scale para evitar “brinco” */
-      opacity:1;
-    }
-  }`;
-  const s = document.createElement('style');
-  s.textContent = css;
-  document.head.appendChild(s);
-})();
-
-(() => {
-  const css = `
-  /* ===== FIX: bottom nav estable en móviles/tablets (sin saltos) ===== */
-  @media (max-width:1024px){
-    :root{ --bottomBarH:64px; }
-
-    /* El contenido reserva sitio: barra + safe-area */
+    /* El contenido reserva siempre hueco barra + safe-area */
     body.has-bottomnav{
-      padding-bottom: calc(var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
+      padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important;
     }
 
-    /* La barra tiene ALTURA FIJA y se apoya ENCIMA del safe-area */
+    /* Barra fija pegada al borde; safe-area como padding interno (no dobles) */
     #bottomNav{
-      position:fixed !important;
-      left:0; right:0;
-      bottom: env(safe-area-inset-bottom,0px) !important; /* ← en vez de padding-bottom */
-      height: var(--bottomBarH) !important;
-      padding: 0 !important;                               /* ← quita crecimiento variable */
-      display:grid; grid-template-columns:repeat(5,1fr) !important;
-      align-items:center !important;
-      contain: layout paint !important;
-    }
+      position: fixed !important;
+      inset: auto 0 0 0 !important;     /* left/right 0, bottom 0 */
+      height: calc(var(--bottomBarH) + var(--safeB)) !important;
+      padding: 0 0 var(--safeB) 0 !important;
+      margin: 0 !important;
+      display: grid !important;
+      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
+      align-items: center !important;
+      border-top: 1px solid var(--border-color,#e5e7eb) !important;
+      backdrop-filter: saturate(180%) blur(14px);
+      -webkit-backdrop-filter: saturate(180%) blur(14px);
+      z-index: 10010 !important;
 
-    /* Botones: misma caja siempre */
-    #bottomNav button{
-      height:100% !important;
-      padding:0 !important;
+      /* neutraliza posibles reglas heredadas */
+      transform: none !important;
+      translate: none !important;
+    }
+    body.dark #bottomNav{ border-top-color:#333; }
+
+    /* Cada botón ocupa SIEMPRE 64px de alto */
+    #bottomNav > button{
+      height: var(--bottomBarH) !important;
+      padding: 0 !important;
       display:flex !important;
       flex-direction:column !important;
       align-items:center !important;
       justify-content:center !important;
       gap:.25rem !important;
+      min-width:0 !important;
+      contain: layout paint !important;
     }
 
-    /* Icono/etiqueta con métricas fijas (sin cambiar altura) */
-    #bottomNav .icon{ line-height:1 !important; }
+    /* Etiquetas sin cambios de peso/escala (evita saltos) */
     #bottomNav .label{
       line-height:1 !important;
-      font-weight:600 !important;      /* mismo peso siempre */
+      font-weight:600 !important;
       white-space:nowrap !important;
       overflow:hidden !important;
       text-overflow:ellipsis !important;
-    }
-    #bottomNav button[aria-current="page"] .label{
-      font-weight:600 !important;       /* nada de bold extra */
-      transform:none !important;        /* nada de scale */
-    }
-
-    /* FAB alineado a la nueva barra (altura fija) */
-    .fab-add{
-      bottom: calc(16px + var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
-    }
-  }`;
-  const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
-})();
-
-(() => {
-  const css = `
-  /* ===== FIX definitivo: bottom nav anclada y sin saltos ===== */
-  @media (max-width:1024px){
-    :root{ --bottomBarH: 64px; }
-
-    /* 1) El contenido SIEMPRE deja hueco para la barra */
-    .has-bottomnav main{ 
-      padding-bottom: 0 !important; 
-    }
-    /* si no usas <main>, deja también el padding en body por si acaso */
-    body.has-bottomnav{ 
-      padding-bottom: calc(var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important; 
-    }
-
-    /* 2) La barra está pegada al borde de la ventana (no dentro del safe-area) */
-    #bottomNav{
-      position: fixed !important;
-      left: 0; right: 0;
-      bottom: 0 !important;                                     /* ← ANCLA REAL */
-      height: calc(var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
-      padding: 0 0 env(safe-area-inset-bottom,0px) 0 !important; /* ← safe-area dentro de la barra */
-      display: grid !important;
-      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
-      width:100% !important;
-      backface-visibility:hidden;
-      align-items: center !important;
-      z-index: 10001 !important;
-      backdrop-filter: saturate(180%) blur(14px);
-      -webkit-backdrop-filter: saturate(180%) blur(14px);
-    }
-
-    /* 3) Cada botón ocupa SIEMPRE la misma caja: sin bold/scale del activo */
-    #bottomNav button{
-      height: var(--bottomBarH) !important;
-      padding: 0 !important;
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: center !important;
-      justify-content: center !important;
-      gap: .25rem !important;
-      min-width: 0 !important;
-      contain: layout paint !important;
-    }
-    #bottomNav .icon{ line-height:1 !important; }
-    #bottomNav .label{
-      line-height:1 !important;
-      font-weight:600 !important;              /* mismo peso en activo y no activo */
-      white-space:nowrap !important;
-      overflow:hidden !important;
-      text-overflow:ellipsis !important;
-    }
-    #bottomNav button[aria-current="page"] .label{
-      font-weight:600 !important;              /* nada de bold extra */
-      transform:none !important;               /* nada de scale */
-    }
-
-    /* 4) FAB colocado justo encima de la barra fija */
-    .fab-add{
-      bottom: calc(16px + var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
-    }
-
-    /* 5) Toasters: evita sumar dos veces el safe-area */
-    body.has-bottomnav.toast-visible .toast-container{
-      bottom: calc(1rem + var(--bottomBarH) + 56px + 12px) !important;
-    }
-  }`;
-  const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
-})();
-
-// PATCH FINAL — Nav inferior estable + FAB/Toast alineados + z-index correcto
-(() => {
-  const css = `
-  /* ====== Bottom Nav estable (móviles/tablets) ====== */
-  @media (max-width:1024px){
-    :root{ --bottomBarH:64px; }
-
-    /* El contenido SIEMPRE deja hueco para la barra + safe-area */
-    body.has-bottomnav{
-      padding-bottom: calc(var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
-    }
-
-    /* Barra pegada al borde, altura fija, safe-area dentro (padding) */
-    #bottomNav{
-      position: fixed !important;
-      left: 0; right: 0; bottom: 0 !important;
-      height: var(--bottomBarH) !important;
-      padding: 0 0 env(safe-area-inset-bottom,0px) 0 !important;
-      display: grid !important;
-      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
-      align-items: center !important;
-      backdrop-filter: saturate(180%) blur(14px);
-      -webkit-backdrop-filter: saturate(180%) blur(14px);
-      border-top: 1px solid #e5e7eb;
-      z-index: 10002 !important; /* < hoja Quick Add (10003) y < toasts (10020) */
-      contain: layout paint !important; /* evita reflow global */
-    }
-    body.dark #bottomNav{ border-top-color:#333; }
-
-    /* Botones con caja fija (sin cambios de ancho/alto al activar) */
-    #bottomNav button{
-      height: var(--bottomBarH) !important;
-      padding: 0 !important;
-      display:flex !important; flex-direction:column !important;
-      align-items:center !important; justify-content:center !important;
-      gap:.25rem !important; min-width:0 !important;
-      contain: layout paint !important;
-    }
-    #bottomNav .icon{ line-height:1 !important; }
-    #bottomNav .label{
-      display:block; max-width:100%;
-      white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important;
-      line-height:1 !important;
-      font-weight:600 !important;              /* mismo peso siempre → sin “brinco” */
-      font-synthesis-weight: none !important;  /* evita negrita sintética */
-    }
-    #bottomNav button[aria-current="page"] .label{
-      font-weight:600 !important;              /* sin extra-bold ni scale */
       transform:none !important;
     }
+    #bottomNav button[aria-current="page"] .label{
+      font-weight:600 !important;
+    }
 
-    /* Ocultar hamburguesa cuando hay bottom nav */
-    body.has-bottomnav #menuToggle{ display:none !important; }
-
-    /* FAB alineado por encima de la barra (incluyendo safe-area) */
+    /* FAB y toasts referenciando la misma altura */
     .fab-add{
-      bottom: calc(16px + var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
-    }
-
-    /* Toasters: sin doble safe-area y sin solapar FAB */
-    .toast-container{ right:1rem; }
-    body.has-bottomnav .toast-container{
-      bottom: calc(1rem + var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
-    }
-    body.toast-visible .toast-container{
-      bottom: calc(1rem + 56px + 12px) !important; /* caso general con FAB visible */
+      bottom: calc(16px + var(--bottomBarH) + var(--safeB)) !important;
     }
     body.has-bottomnav.toast-visible .toast-container{
-      bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + env(safe-area-inset-bottom,0px)) !important;
+      bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + var(--safeB)) !important;
     }
   }`;
-  const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
-})();
-
-(() => {
-  const css = `
-  /* === FIX unificador: bottom nav a la misma altura en todas las vistas === */
-  @media (max-width:1024px){
-    :root{ --bottomBarH:64px; }
-
-    /* 1) El contenido reserva hueco constante: barra + safe area */
-    body.has-bottomnav{
-      padding-bottom: calc(var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
-    }
-
-    /* 2) La barra SIEMPRE anclada al borde inferior.
-          El safe-area va como padding interno (NO como bottom ni en la height). */
-    #bottomNav, body.has-bottomnav #bottomNav, nav#bottomNav{
-      position: fixed !important;
-      left: 0; right: 0; bottom: 0 !important;
-      height: var(--bottomBarH) !important;
-      padding: 0 0 env(safe-area-inset-bottom,0px) 0 !important;
-      display: grid !important;
-      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
-      align-items: center !important;
-      z-index: 10010 !important;
-    }
-
-    /* 3) Botones con caja fija (evita variaciones de alto) */
-    #bottomNav > button{ height: var(--bottomBarH) !important; padding:0 !important; }
-
-    /* 4) Por si alguna vista añadía margen inferior */
-    main, .page{ margin-bottom: 0 !important; }
-
-    /* 5) FAB/Toasts alineados a la nueva referencia única */
-    .fab-add{
-      bottom: calc(16px + var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
-    }
-    body.has-bottomnav.toast-visible .toast-container{
-      bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + env(safe-area-inset-bottom,0px)) !important;
-    }
-  }`;
-  const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
-})();
-
-(() => {
-  const css = `
-  /* Unificador definitivo: misma altura/posición en TODAS las páginas */
-  @media (max-width:1024px){
-    :root{ --bottomBarH:64px; }
-    html body.has-bottomnav nav#bottomNav,
-    body.has-bottomnav #bottomNav,
-    #bottomNav{
-      position: fixed !important;
-      left: 0 !important; right: 0 !important; bottom: 0 !important;
-      /* Altura visual fija (64px) y el safe-area va como padding interno */
-      height: var(--bottomBarH) !important;
-      padding: 0 0 env(safe-area-inset-bottom,0px) 0 !important;
-
-      /* Anula variantes antiguas que lo movían/agrandaban */
-      margin: 0 !important;
-      transform: none !important;
-      translate: none !important;
-      inset-block-end: 0 !important;
-    }
-  }`;
-  const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+  const s=document.createElement('style'); s.textContent=css; document.head.appendChild(s);
 })();
 
 /* Asegura que el body tiene .has-bottomnav cuando exista la barra.
