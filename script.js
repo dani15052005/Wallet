@@ -797,7 +797,7 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
     #bottomNav{
       position: fixed !important;
       inset: auto 0 0 0 !important;     /* left/right 0, bottom 0 */
-      height: var(--bottomBarH) !important; }
+      height: var(--bottomBarH) !important;
       padding: 0 0 var(--safeB) 0 !important;
       margin: 0 !important;
       display: grid !important;
@@ -930,7 +930,7 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
   }
 
   /* 6) Corrige el typo por si el bloque viejo sigue cargando */
-  nav#bottomNav{ height: var(--bottomBarH) !important; } /* pisa cualquier "height: height:" roto */
+  nav#bottomNav{ height: var(--bottomBarH) !important; }
   `;
   const s = document.createElement('style');
   s.textContent = css;
@@ -975,6 +975,80 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
   s.textContent = css;
   document.head.appendChild(s);
 })();
+
+(() => {
+  const css = `
+  /* ===== BottomNav consistente, sin fondo blanco ===== */
+  @media (max-width:1024px){
+    :root{
+      --bottomBarH: 64px;
+      --safeB: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* Reserva para el contenido: barra + safe area */
+    body.has-bottomnav{
+      padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important;
+    }
+
+    /* Barra fija: altura constante y color sólido */
+    nav#bottomNav{
+      position: fixed !important;
+      left: 0; right: 0; bottom: 0 !important;
+      display: grid !important;
+      grid-template-columns: repeat(5, 1fr) !important;
+      align-items: center !important;
+      height: var(--bottomBarH) !important;     /* 64 px exactos para los botones */
+      box-sizing: content-box !important;        /* el padding SUMA, no resta */
+      padding: 0 0 var(--safeB) 0 !important;    /* pinta la zona segura */
+      background: #43a047 !important;
+      border-top: 1px solid rgba(0,0,0,.08) !important;
+      transform: none !important; translate: none !important;
+      z-index: 10020 !important;
+    }
+    body.dark nav#bottomNav{
+      background:#2e7d32 !important;
+      border-top-color: rgba(255,255,255,.12) !important;
+    }
+
+    /* Botones del nav: mismo alto que la barra */
+    nav#bottomNav > button{
+      height: var(--bottomBarH) !important;
+      padding: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
+      align-items: center !important;
+      gap: .25rem !important;
+      min-width: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+    nav#bottomNav .label{
+      line-height:1 !important;
+      font-weight:600 !important;
+      white-space:nowrap !important;
+      overflow:hidden !important;
+      text-overflow:ellipsis !important;
+      transform:none !important;
+    }
+
+    /* FAB/Toasts referenciados a la misma altura */
+    .fab-add{
+      bottom: calc(16px + var(--bottomBarH) + var(--safeB)) !important;
+    }
+    body.has-bottomnav.toast-visible .toast-container{
+      bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + var(--safeB)) !important;
+    }
+  }
+
+  /* Por si quedó el bloque roto con "height: height:" o la llave suelta */
+  nav#bottomNav{ height: var(--bottomBarH) !important; }
+  `;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
+})();
+
   // ---- DOM ----
   let overlay, card, fxCanvas, ctx, rafId, focusables, lastFocus;
 
