@@ -1284,28 +1284,39 @@ body.dark #seccionHistorico .panel{
       padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important;
     }
 
-    /* Barra inferior: caja incluye la safe-area y además la rellena con fondo */
-    nav#bottomNav{
-      position: fixed !important;
-      left:0 !important; right:0 !important; bottom:0 !important;
-      box-sizing: border-box !important;
-      height: calc(var(--bottomBarH) + var(--safeB)) !important; /* 👈 ocupa también la zona segura */
-      padding: 0 0 var(--safeB) 0 !important;                     /* 👈 separa los iconos del gesto Home */
-      margin: 0 !important;
-      display: grid !important;
-      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
-      align-items: center !important;
-      z-index: 10050 !important;
-    }
+    /* iOS: el nav incluye la safe-area en su ALTURA real */
+nav#bottomNav{
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
 
-    /* Por si algún estilo recorta el background, pintamos la safe-area explícitamente */
-    nav#bottomNav::after{
-      content:"";
-      position:absolute; left:0; right:0; bottom:0;
-      height: var(--safeB);
-      background: inherit;           /* mismo color que la barra */
-      pointer-events:none;
-    }
+  /* altura total = barra + safe-area  */
+  height: calc(var(--bottomBarH) + var(--safeB)) !important;
+  padding: 0 0 var(--safeB) 0 !important;     /* botones por encima del borde */
+  box-sizing: border-box !important;
+
+  /* mantén tu color aquí (o se hereda del que tengas) */
+  background: #43a047 !important;
+
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0,1fr)) !important;
+  align-items: center !important;
+  z-index: 10020 !important;
+  transform: none !important;
+}
+
+/* Fallback extra: pinta explícitamente la franja de la safe-area
+   por si algún WebKit no pinta el padding con background */
+nav#bottomNav::after{
+  content:"";
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: var(--safeB);
+  background: inherit;
+  z-index: 10019;           /* justo debajo del nav */
+  pointer-events: none;
+}
 
     /* Botones: mismo alto que la parte útil (sin safe-area) */
     nav#bottomNav > button{
