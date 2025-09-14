@@ -1273,6 +1273,7 @@ body.dark #seccionHistorico .panel{
 })();
 
 // ===== FIX: BottomNav altura consistente (64px) en todas las páginas =====
+// ===== FIX: BottomNav pegado al borde inferior (con safe-area) =====
 (() => {
   const css = `
   @media (max-width:1024px){
@@ -1281,23 +1282,33 @@ body.dark #seccionHistorico .panel{
     /* Reserva de espacio para el contenido */
     body.has-bottomnav,
     main.has-bottomnav{
-      padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important; /* 👈 también en main */
+      padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important;
     }
 
-    /* Barra inferior: ... (lo demás igual) */
+    /* Barra inferior: caja incluye la safe-area y además la rellena con fondo */
     nav#bottomNav{
       position: fixed !important;
       left:0 !important; right:0 !important; bottom:0 !important;
-      height: var(--bottomBarH) !important;
-      padding: 0 0 var(--safeB) 0 !important;
+      box-sizing: border-box !important;
+      height: calc(var(--bottomBarH) + var(--safeB)) !important; /* 👈 ocupa también la zona segura */
+      padding: 0 0 var(--safeB) 0 !important;                     /* 👈 separa los iconos del gesto Home */
       margin: 0 !important;
       display: grid !important;
       grid-template-columns: repeat(5, minmax(0,1fr)) !important;
       align-items: center !important;
-      transform: none !important; translate: none !important;
-      z-index: 10010 !important;
+      z-index: 10050 !important;
     }
 
+    /* Por si algún estilo recorta el background, pintamos la safe-area explícitamente */
+    nav#bottomNav::after{
+      content:"";
+      position:absolute; left:0; right:0; bottom:0;
+      height: var(--safeB);
+      background: inherit;           /* mismo color que la barra */
+      pointer-events:none;
+    }
+
+    /* Botones: mismo alto que la parte útil (sin safe-area) */
     nav#bottomNav > button{
       height: var(--bottomBarH) !important;
       padding: 0 !important;
@@ -1307,9 +1318,9 @@ body.dark #seccionHistorico .panel{
       justify-content:center !important;
       gap:.25rem !important;
       min-width:0 !important;
-      contain: layout paint !important;
     }
 
+    /* FAB/Toasts referenciando la misma altura total */
     .fab-add{
       bottom: calc(16px + var(--bottomBarH) + var(--safeB)) !important;
     }
@@ -1321,6 +1332,7 @@ body.dark #seccionHistorico .panel{
   s.textContent = css;
   document.head.appendChild(s);
 })();
+
 
 
 // -------------------- Toasts --------------------
