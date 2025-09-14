@@ -797,7 +797,7 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
     #bottomNav{
       position: fixed !important;
       inset: auto 0 0 0 !important;     /* left/right 0, bottom 0 */
-      height: calc(var(--bottomBarH) + var(--safeB)) !important;
+      height: height: var(--bottomBarH) !important; }
       padding: 0 0 var(--safeB) 0 !important;
       margin: 0 !important;
       display: grid !important;
@@ -1422,6 +1422,57 @@ body.dark #seccionHistorico .panel{
     }
   }`;
   const s=document.createElement('style'); s.textContent=css; document.head.appendChild(s);
+})();
+
+// ===== FIX: BottomNav altura consistente (64px) en todas las páginas =====
+(() => {
+  const css = `
+  @media (max-width:1024px){
+    :root{ --bottomBarH:64px; --safeB: env(safe-area-inset-bottom,0px); }
+
+    /* Reserva de espacio para el contenido */
+    body.has-bottomnav{
+      padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important;
+    }
+
+    /* Barra inferior: altura fija + safe-area como padding interno */
+    nav#bottomNav{
+      position: fixed !important;
+      left:0 !important; right:0 !important; bottom:0 !important;
+      height: var(--bottomBarH) !important;          /* <- SOLO 64px */
+      padding: 0 0 var(--safeB) 0 !important;        /* <- safe-area dentro, no suma altura */
+      margin: 0 !important;
+      display: grid !important;
+      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
+      align-items: center !important;
+      transform: none !important; translate: none !important;
+      z-index: 10010 !important;
+    }
+
+    /* Botones: mismo alto que la barra */
+    nav#bottomNav > button{
+      height: var(--bottomBarH) !important;
+      padding: 0 !important;
+      display:flex !important;
+      flex-direction:column !important;
+      align-items:center !important;
+      justify-content:center !important;
+      gap:.25rem !important;
+      min-width:0 !important;
+      contain: layout paint !important;
+    }
+
+    /* FAB/Toasts referenciando exactamente la misma altura */
+    .fab-add{
+      bottom: calc(16px + var(--bottomBarH) + var(--safeB)) !important;
+    }
+    body.has-bottomnav.toast-visible .toast-container{
+      bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + var(--safeB)) !important;
+    }
+  }`;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
 })();
 
 // -------------------- Toasts --------------------
