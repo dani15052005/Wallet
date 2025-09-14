@@ -889,6 +889,62 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
   document.head.appendChild(s);
 })();
 
+(() => {
+  const css = `
+  /* ===== FIX: bottom nav estable en móviles/tablets (sin saltos) ===== */
+  @media (max-width:1024px){
+    :root{ --bottomBarH:64px; }
+
+    /* El contenido reserva sitio: barra + safe-area */
+    body.has-bottomnav{
+      padding-bottom: calc(var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
+    }
+
+    /* La barra tiene ALTURA FIJA y se apoya ENCIMA del safe-area */
+    #bottomNav{
+      position:fixed !important;
+      left:0; right:0;
+      bottom: env(safe-area-inset-bottom,0px) !important; /* ← en vez de padding-bottom */
+      height: var(--bottomBarH) !important;
+      padding: 0 !important;                               /* ← quita crecimiento variable */
+      display:grid; grid-template-columns:repeat(5,1fr) !important;
+      align-items:center !important;
+      contain: layout paint !important;
+    }
+
+    /* Botones: misma caja siempre */
+    #bottomNav button{
+      height:100% !important;
+      padding:0 !important;
+      display:flex !important;
+      flex-direction:column !important;
+      align-items:center !important;
+      justify-content:center !important;
+      gap:.25rem !important;
+    }
+
+    /* Icono/etiqueta con métricas fijas (sin cambiar altura) */
+    #bottomNav .icon{ line-height:1 !important; }
+    #bottomNav .label{
+      line-height:1 !important;
+      font-weight:600 !important;      /* mismo peso siempre */
+      white-space:nowrap !important;
+      overflow:hidden !important;
+      text-overflow:ellipsis !important;
+    }
+    #bottomNav button[aria-current="page"] .label{
+      font-weight:600 !important;       /* nada de bold extra */
+      transform:none !important;        /* nada de scale */
+    }
+
+    /* FAB alineado a la nueva barra (altura fija) */
+    .fab-add{
+      bottom: calc(16px + var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
+    }
+  }`;
+  const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+})();
+
   // ---- DOM ----
   let overlay, card, fxCanvas, ctx, rafId, focusables, lastFocus;
 
