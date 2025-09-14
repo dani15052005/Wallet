@@ -782,75 +782,6 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
   `;
   const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
 
-  (() => {
-  const css = `
-  /* ===== BottomNav — versión única, consistente ===== */
-  @media (max-width:1024px){
-    :root{ --bottomBarH:64px; --safeB: env(safe-area-inset-bottom,0px); }
-
-    /* El contenido reserva siempre hueco barra + safe-area */
-    body.has-bottomnav{
-      padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important;
-    }
-
-    /* Barra fija pegada al borde; safe-area como padding interno (no dobles) */
-    #bottomNav{
-      position: fixed !important;
-      inset: auto 0 0 0 !important;     /* left/right 0, bottom 0 */
-      height: var(--bottomBarH) !important;
-      padding: 0 0 var(--safeB) 0 !important;
-      margin: 0 !important;
-      display: grid !important;
-      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
-      align-items: center !important;
-      border-top: 1px solid var(--border-color,#e5e7eb) !important;
-      backdrop-filter: saturate(180%) blur(14px);
-      -webkit-backdrop-filter: saturate(180%) blur(14px);
-      z-index: 10010 !important;
-
-      /* neutraliza posibles reglas heredadas */
-      transform: none !important;
-      translate: none !important;
-    }
-    body.dark #bottomNav{ border-top-color:#333; }
-
-    /* Cada botón ocupa SIEMPRE 64px de alto */
-    #bottomNav > button{
-      height: var(--bottomBarH) !important;
-      padding: 0 !important;
-      display:flex !important;
-      flex-direction:column !important;
-      align-items:center !important;
-      justify-content:center !important;
-      gap:.25rem !important;
-      min-width:0 !important;
-      contain: layout paint !important;
-    }
-
-    /* Etiquetas sin cambios de peso/escala (evita saltos) */
-    #bottomNav .label{
-      line-height:1 !important;
-      font-weight:600 !important;
-      white-space:nowrap !important;
-      overflow:hidden !important;
-      text-overflow:ellipsis !important;
-      transform:none !important;
-    }
-    #bottomNav button[aria-current="page"] .label{
-      font-weight:600 !important;
-    }
-
-    /* FAB y toasts referenciando la misma altura */
-    .fab-add{
-      bottom: calc(16px + var(--bottomBarH) + var(--safeB)) !important;
-    }
-    body.has-bottomnav.toast-visible .toast-container{
-      bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + var(--safeB)) !important;
-    }
-  }`;
-  const s=document.createElement('style'); s.textContent=css; document.head.appendChild(s);
-})();
-
 /* Asegura que el body tiene .has-bottomnav cuando exista la barra.
    Úsalo en carga y en cada cambio de ruta si tu app es SPA. */
 (function ensureBottomNavFlag(){
@@ -880,26 +811,6 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
     body.has-bottomnav{
       padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important;
     }
-
-    /* 3) Bottom nav: altura fija y sin transforms raros */
-    body.has-bottomnav nav#bottomNav{
-      position: fixed !important;
-      left:0 !important; right:0 !important; bottom:0 !important;
-      box-sizing: content-box !important;
-      height: var(--bottomBarH) !important;     /* <- 64px exactos */
-      padding: 0 0 var(--safeB) 0 !important;   /* safe-area dentro; no cambia la altura fija */
-      margin: 0 !important;
-      display: grid !important;
-      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
-      align-items: center !important;
-      border-top: 1px solid var(--border-color,#e5e7eb) !important;
-      backdrop-filter: saturate(180%) blur(14px);
-      -webkit-backdrop-filter: saturate(180%) blur(14px);
-      transform: none !important;
-      translate: none !important;
-      z-index: 10010 !important;
-    }
-    body.dark.has-bottomnav nav#bottomNav{ border-top-color:#333 !important; }
 
     /* 4) Botones: bloquea el alto y evita que las etiquetas hagan wrap */
     body.has-bottomnav nav#bottomNav > button{
