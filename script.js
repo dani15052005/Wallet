@@ -797,7 +797,7 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
     #bottomNav{
       position: fixed !important;
       inset: auto 0 0 0 !important;     /* left/right 0, bottom 0 */
-      height: height: var(--bottomBarH) !important; }
+      height: var(--bottomBarH) !important; }
       padding: 0 0 var(--safeB) 0 !important;
       margin: 0 !important;
       display: grid !important;
@@ -863,6 +863,78 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
   window.addEventListener('hashchange', apply);
   window.addEventListener('popstate', apply);
   // Si usas router propio, llama a apply() tras cada navegación.
+})();
+
+(() => {
+  const css = `
+  /* ====== Fix global ====== */
+  @media (max-width:1024px){
+    :root{ --bottomBarH:64px; --safeB: env(safe-area-inset-bottom,0px); }
+
+    /* 1) Oculta el menú hamburguesa en móviles/tablets */
+    #menuToggle,
+    #menu,
+    #menuOverlay{ display:none !important; }
+
+    /* 2) Reserva SIEMPRE el mismo hueco para la barra */
+    body.has-bottomnav{
+      padding-bottom: calc(var(--bottomBarH) + var(--safeB)) !important;
+    }
+
+    /* 3) Bottom nav: altura fija y sin transforms raros */
+    body.has-bottomnav nav#bottomNav{
+      position: fixed !important;
+      left:0 !important; right:0 !important; bottom:0 !important;
+      box-sizing: content-box !important;
+      height: var(--bottomBarH) !important;     /* <- 64px exactos */
+      padding: 0 0 var(--safeB) 0 !important;   /* safe-area dentro; no cambia la altura fija */
+      margin: 0 !important;
+      display: grid !important;
+      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
+      align-items: center !important;
+      border-top: 1px solid var(--border-color,#e5e7eb) !important;
+      backdrop-filter: saturate(180%) blur(14px);
+      -webkit-backdrop-filter: saturate(180%) blur(14px);
+      transform: none !important;
+      translate: none !important;
+      z-index: 10010 !important;
+    }
+    body.dark.has-bottomnav nav#bottomNav{ border-top-color:#333 !important; }
+
+    /* 4) Botones: bloquea el alto y evita que las etiquetas hagan wrap */
+    body.has-bottomnav nav#bottomNav > button{
+      height: var(--bottomBarH) !important;
+      padding: 0 !important;
+      display:flex !important;
+      flex-direction:column !important;
+      align-items:center !important;
+      justify-content:center !important;
+      gap:.25rem !important;
+      min-width:0 !important;
+      contain: layout paint !important;
+    }
+    body.has-bottomnav nav#bottomNav .label{
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      line-height: 1 !important;
+      font-weight: 600 !important;
+      transform: none !important;
+    }
+
+    /* 5) FAB y toasts alineados a la barra */
+    .fab-add{ bottom: calc(16px + var(--bottomBarH) + var(--safeB)) !important; }
+    body.has-bottomnav.toast-visible .toast-container{
+      bottom: calc(1rem + var(--bottomBarH) + 56px + 12px + var(--safeB)) !important;
+    }
+  }
+
+  /* 6) Corrige el typo por si el bloque viejo sigue cargando */
+  nav#bottomNav{ height: var(--bottomBarH) !important; } /* pisa cualquier "height: height:" roto */
+  `;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
 })();
 
   // ---- DOM ----
