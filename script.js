@@ -853,6 +853,42 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
   const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
 })();
 
+(() => {
+  const css = `
+  @media (max-width:1024px){
+    /* Altura fija + columnas sin crecimiento por contenido */
+    #bottomNav{
+      height: var(--bottomBarH);
+      padding-bottom: env(safe-area-inset-bottom,0px);
+      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
+      font-synthesis-weight: none; /* evita negrita sintética */
+    }
+    #bottomNav button{
+      min-width: 0 !important;
+      contain: layout paint;       /* cambios internos no recalculan el grid */
+    }
+    /* Etiquetas: mismo peso SIEMPRE (evita reflow) */
+    #bottomNav .label{
+      display:block;
+      max-width:100%;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      line-height:1;
+      font-weight:600;             /* base fija */
+    }
+    /* Activo: NO cambies el peso ni escales */
+    #bottomNav button[aria-current="page"] .label{
+      font-weight:600 !important;  /* ← clave del fix */
+      transform:none !important;   /* sin scale para evitar “brinco” */
+      opacity:1;
+    }
+  }`;
+  const s = document.createElement('style');
+  s.textContent = css;
+  document.head.appendChild(s);
+})();
+
   // ---- DOM ----
   let overlay, card, fxCanvas, ctx, rafId, focusables, lastFocus;
 
