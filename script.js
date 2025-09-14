@@ -945,6 +945,74 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
   const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
 })();
 
+(() => {
+  const css = `
+  /* ===== FIX definitivo: bottom nav anclada y sin saltos ===== */
+  @media (max-width:1024px){
+    :root{ --bottomBarH: 64px; }
+
+    /* 1) El contenido SIEMPRE deja hueco para la barra */
+    .has-bottomnav main{ 
+      padding-bottom: calc(var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important; 
+    }
+    /* si no usas <main>, deja también el padding en body por si acaso */
+    body.has-bottomnav{ 
+      padding-bottom: calc(var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important; 
+    }
+
+    /* 2) La barra está pegada al borde de la ventana (no dentro del safe-area) */
+    #bottomNav{
+      position: fixed !important;
+      left: 0; right: 0;
+      bottom: 0 !important;                                     /* ← ANCLA REAL */
+      height: calc(var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
+      padding: 0 0 env(safe-area-inset-bottom,0px) 0 !important; /* ← safe-area dentro de la barra */
+      display: grid !important;
+      grid-template-columns: repeat(5, minmax(0,1fr)) !important;
+      align-items: center !important;
+      z-index: 10004 !important;
+      backdrop-filter: saturate(180%) blur(14px);
+      -webkit-backdrop-filter: saturate(180%) blur(14px);
+    }
+
+    /* 3) Cada botón ocupa SIEMPRE la misma caja: sin bold/scale del activo */
+    #bottomNav button{
+      height: var(--bottomBarH) !important;
+      padding: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: .25rem !important;
+      min-width: 0 !important;
+      contain: layout paint !important;
+    }
+    #bottomNav .icon{ line-height:1 !important; }
+    #bottomNav .label{
+      line-height:1 !important;
+      font-weight:600 !important;              /* mismo peso en activo y no activo */
+      white-space:nowrap !important;
+      overflow:hidden !important;
+      text-overflow:ellipsis !important;
+    }
+    #bottomNav button[aria-current="page"] .label{
+      font-weight:600 !important;              /* nada de bold extra */
+      transform:none !important;               /* nada de scale */
+    }
+
+    /* 4) FAB colocado justo encima de la barra fija */
+    .fab-add{
+      bottom: calc(16px + var(--bottomBarH) + env(safe-area-inset-bottom,0px)) !important;
+    }
+
+    /* 5) Toasters: evita sumar dos veces el safe-area */
+    body.has-bottomnav.toast-visible .toast-container{
+      bottom: calc(1rem + var(--bottomBarH) + 56px + 12px) !important;
+    }
+  }`;
+  const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+})();
+
   // ---- DOM ----
   let overlay, card, fxCanvas, ctx, rafId, focusables, lastFocus;
 
