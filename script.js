@@ -1130,6 +1130,30 @@ body.dark #updCard .upd-actions .upd-btn:not(.primary):hover{
   const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
 })();
 
+(() => {
+  const css = `
+  /* Unificador definitivo: misma altura/posición en TODAS las páginas */
+  @media (max-width:1024px){
+    :root{ --bottomBarH:64px; }
+    html body.has-bottomnav nav#bottomNav,
+    body.has-bottomnav #bottomNav,
+    #bottomNav{
+      position: fixed !important;
+      left: 0 !important; right: 0 !important; bottom: 0 !important;
+      /* Altura visual fija (64px) y el safe-area va como padding interno */
+      height: var(--bottomBarH) !important;
+      padding: 0 0 env(safe-area-inset-bottom,0px) 0 !important;
+
+      /* Anula variantes antiguas que lo movían/agrandaban */
+      margin: 0 !important;
+      transform: none !important;
+      translate: none !important;
+      inset-block-end: 0 !important;
+    }
+  }`;
+  const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+})();
+
 /* Asegura que el body tiene .has-bottomnav cuando exista la barra.
    Úsalo en carga y en cada cambio de ruta si tu app es SPA. */
 (function ensureBottomNavFlag(){
